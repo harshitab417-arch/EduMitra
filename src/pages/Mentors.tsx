@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createIsolatedAuthClient } from '@/lib/isolatedAuthClient';
 
 export default function MentorsPage() {
   const { t } = useTranslation();
@@ -79,7 +80,8 @@ export default function MentorsPage() {
         throw new Error('Add at least one expertise subject');
       }
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      const isolatedAuth = createIsolatedAuthClient();
+      const { data: signUpData, error: signUpError } = await isolatedAuth.auth.signUp({
         email: mentorEmail,
         password: mentorPassword,
         options: { data: { name: mentorName, role: 'mentor' } },

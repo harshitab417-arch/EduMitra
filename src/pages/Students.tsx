@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import LogSessionDialog from '@/components/shared/LogSessionDialog';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createIsolatedAuthClient } from '@/lib/isolatedAuthClient';
 
 export default function StudentsPage() {
   const { t } = useTranslation();
@@ -224,7 +225,8 @@ export default function StudentsPage() {
         }
       }
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      const isolatedAuth = createIsolatedAuthClient();
+      const { data: signUpData, error: signUpError } = await isolatedAuth.auth.signUp({
         email: studentEmail,
         password: studentPassword,
         options: { data: { name: studentName, role: 'student' } },
