@@ -3,6 +3,7 @@
 EduMitra is a role-based mentoring platform built for NGOs to run consistent learning programs for underserved students.
 
 It helps organizations:
+
 - deliver structured lesson plans,
 - log every session quickly,
 - track student progress and learning gaps,
@@ -27,6 +28,7 @@ It helps organizations:
 ## Tech Stack
 
 ### Frontend
+
 - React 18
 - TypeScript
 - Vite
@@ -37,6 +39,7 @@ It helps organizations:
 - i18next (English/Hindi)
 
 ### Backend
+
 - Supabase Auth
 - Supabase Postgres
 - SQL migrations + RLS policies
@@ -77,16 +80,19 @@ supabase/
 ## Local Setup
 
 ### 1) Install prerequisites
+
 - Node.js 18+
 - npm (comes with Node)
 - Supabase project (cloud)
 
 ### 2) Install dependencies
+
 ```bash
 npm install
 ```
 
 ### 3) Configure environment
+
 Create `.env` in project root:
 
 ```env
@@ -96,6 +102,7 @@ VITE_SUPABASE_PROJECT_ID=<your-project-ref>
 ```
 
 ### 4) Apply database migrations
+
 You can use Supabase CLI or run SQL manually in Supabase SQL Editor.
 
 Run all files in `supabase/migrations/` in chronological order, including newer feature migrations:
@@ -110,11 +117,13 @@ Run all files in `supabase/migrations/` in chronological order, including newer 
 - `20260330091960_mentors_policy_for_admin_update.sql`
 
 ### 5) Start development server
+
 ```bash
 npm run dev
 ```
 
 App runs at:
+
 - `http://localhost:8080`
 
 ---
@@ -122,17 +131,20 @@ App runs at:
 ## Role Workflows
 
 ## Student
+
 - Update learning profile (grade, subjects, baseline, location)
 - View progress trends and recent sessions
 - View mentor match information
 
 ## Mentor
+
 - Update mentor profile (expertise, availability)
 - Log sessions for single/multiple students
 - Subject restriction in log form (only mentor expertise allowed)
 - Add/remove students (based on policy and page actions)
 
 ## Admin/NGO
+
 - Add/remove mentors
 - Add/remove students
 - Run and save mentor-student matching
@@ -143,6 +155,7 @@ App runs at:
 ## Matching Algorithm (Current)
 
 Current matching in `src/lib/matcher.ts` is **rule-based weighted scoring**:
+
 - Subject overlap
 - Baseline priority
 - Availability bonus
@@ -167,18 +180,22 @@ This is intentionally explainable and deterministic for NGO operations and demos
 ## Troubleshooting
 
 ### Data not showing in students/mentors lists
+
 - Ensure users actually signed up with correct role (`student`, `mentor`, `admin`).
 - Ensure migrations were applied in order.
 
 ### Remove buttons not working
+
 - Ensure delete-policy migrations are applied:
   - `20260330091940_delete_policies_students_mentors.sql`
 
 ### Status updates not persisting
+
 - Ensure gap alert update policy migration is applied:
   - `20260330091950_gap_alerts_update_policy.sql`
 
 ### Add Mentor/Add Student failing
+
 - Check RLS migrations for update permissions:
   - `20260330091930_students_policy_for_mentor_admin.sql`
   - `20260330091960_mentors_policy_for_admin_update.sql`
@@ -195,3 +212,4 @@ This is intentionally explainable and deterministic for NGO operations and demos
 - Kuldeep Reddy
 - Chellangi Vedish
 - Byreddy Harshita
+- Chakrika Bandi
