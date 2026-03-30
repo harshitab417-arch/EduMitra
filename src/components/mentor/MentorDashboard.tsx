@@ -124,27 +124,97 @@ export default function MentorDashboard() {
     enabled: !!mentor,
   });
 
+  const { data: myStudents } = useQuery({
+    queryKey: ['mentor-students-by-subject', mentor?.id, mentor?.expertise],
+    queryFn: async () => {
+      const mentorSubjects = (mentor?.expertise || []).map((s: string) => s.toLowerCase());
+      if (!mentorSubjects.length) return [];
+
+      const [{ data: studentsData, error: studentsError }, { data: profilesData, error: profilesError }] =
+        await Promise.all([
+          supabase.from('students').select('id,user_id,grade,subjects'),
+          supabase.from('profiles').select('user_id,name'),
+        ]);
+      if (studentsError) throw studentsError;
+      if (profilesError) throw profilesError;
+
+      const nameByUserId = new Map<string, string>();
+      (profilesData || []).forEach((p: any) => nameByUserId.set(p.user_id, p.name));
+
+      const activeMatchesByStudentId = new Map<string, any>();
+      (matches || []).forEach((m: any) => activeMatchesByStudentId.set(m.student_id, m));
+
+      return (studentsData || [])
+        .filter((s: any) => {
+          const studentSubjects = (s.subjects || []).map((sub: string) => sub.toLowerCase());
+          return studentSubjects.some((sub: string) => mentorSubjects.includes(sub));
+        })
+        .map((s: any) => {
+          const m = activeMatchesByStudentId.get(s.id);
+          return {
+            id: s.id,
+            name: nameByUserId.get(s.user_id) || 'Student',
+            subjects: s.subjects || [],
+            grade: s.grade,
+            match_score: m?.match_score ?? null,
+          };
+        });
+    },
+    enabled: !!mentor,
+  });
+
   const { data: sessions } = useQuery({
     queryKey: ['mentor-sessions', mentor?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
         .select('*')
         .eq('mentor_id', mentor!.id)
         .order('date', { ascending: false })
         .limit(10);
-      return data || [];
+      if (sessionsError) throw sessionsError;
+
+      const sessionsList = sessionsData || [];
+      const studentIds = Array.from(new Set(sessionsList.map((s: any) => s.student_id)));
+      if (!studentIds.length) return sessionsList;
+
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('id,user_id,grade,subjects')
+        .in('id', studentIds);
+      if (studentsError) throw studentsError;
+
+      const userIds = Array.from(new Set((studentsData || []).map((s: any) => s.user_id)));
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id,name')
+        .in('user_id', userIds);
+      if (profilesError) throw profilesError;
+
+      const nameByUserId = new Map<string, string>();
+      (profilesData || []).forEach((p: any) => nameByUserId.set(p.user_id, p.name));
+
+      const studentsById = new Map<string, any>();
+      (studentsData || []).forEach((st: any) =>
+        studentsById.set(st.id, {
+          id: st.id,
+          name: nameByUserId.get(st.user_id) || 'Student',
+          grade: st.grade,
+          subjects: st.subjects || [],
+        }),
+      );
+
+      return sessionsList.map((s: any) => ({
+        ...s,
+        student: studentsById.get(s.student_id) || null,
+      }));
     },
     enabled: !!mentor,
   });
 
   const completedSessions = sessions?.filter(s => s.status === 'completed').length || 0;
   const upcomingSessions = sessions?.filter(s => s.status === 'scheduled').length || 0;
-  const mentorSubjects = (mentor?.expertise || []).map((s: string) => s.toLowerCase());
-  const filteredMatches = (matches || []).filter((m: any) => {
-    const studentSubjects = (m.student?.subjects || []).map((s: string) => s.toLowerCase());
-    return studentSubjects.some((s: string) => mentorSubjects.includes(s));
-  });
+  const recentSession = (sessions || []).slice(0, 1)[0];
 
   return (
     <div className="space-y-6">
@@ -183,7 +253,7 @@ export default function MentorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title={t('mentor.myStudents')} value={filteredMatches.length || 0} icon={Users} variant="primary" />
+        <StatCard title={t('mentor.myStudents')} value={myStudents?.length || 0} icon={Users} variant="primary" />
         <StatCard title={t('dashboard.sessionsCompleted')} value={completedSessions} icon={Calendar} variant="success" />
         <StatCard title={t('dashboard.upcomingSessions')} value={upcomingSessions} icon={BookOpen} variant="warning" />
         <StatCard title="Expertise" value={mentor?.expertise?.length || 0} icon={TrendingUp} variant="secondary" />
@@ -193,23 +263,24 @@ export default function MentorDashboard() {
         {/* Recent Sessions */}
         <div className="stat-card">
           <h3 className="font-semibold mb-4">{t('dashboard.recentSessions')}</h3>
-          {sessions && sessions.length > 0 ? (
+          {recentSession ? (
             <div className="space-y-2">
-              {sessions.map((s) => (
-                <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div>
-                    <p className="font-medium text-sm">{s.topic || 'Session'}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(s.date).toLocaleDateString('en-IN')}
-                    </p>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    s.status === 'completed' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
-                  }`}>
-                    {s.status}
-                  </span>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div>
+                  <p className="font-medium text-sm">{recentSession.topic || 'Session'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {recentSession.student?.name || 'Student'} · {new Date(recentSession.date).toLocaleDateString('en-IN')}
+                  </p>
+                  {recentSession.student?.grade !== undefined && recentSession.student?.grade !== null && (
+                    <p className="text-xs text-muted-foreground">Grade {recentSession.student.grade}</p>
+                  )}
                 </div>
-              ))}
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  recentSession.status === 'completed' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                }`}>
+                  {recentSession.status}
+                </span>
+              </div>
             </div>
           ) : (
             <p className="text-muted-foreground text-sm text-center py-8">{t('common.noData')}</p>
@@ -219,24 +290,26 @@ export default function MentorDashboard() {
         {/* My Students */}
         <div className="stat-card">
           <h3 className="font-semibold mb-4">{t('mentor.myStudents')}</h3>
-          {filteredMatches.length > 0 ? (
+          {myStudents && myStudents.length > 0 ? (
             <div className="space-y-2">
-              {filteredMatches.map((m: any) => (
-                <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              {myStudents.map((s: any) => (
+                <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                    {m.student?.name?.[0] || 'S'}
+                    {s.name?.[0] || 'S'}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{m.student?.name || 'Student'}</p>
-                    <p className="text-xs text-muted-foreground">Match: {m.match_score}%</p>
+                    <p className="font-medium text-sm">{s.name || 'Student'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Grade {s.grade} · {s.match_score !== null ? `Match: ${s.match_score}%` : 'Not matched yet'}
+                    </p>
                   </div>
                   <Button
                     size="sm"
                     variant="destructive"
                     onClick={() => {
-                      if (!m.student?.id) return;
-                      const ok = window.confirm(`Remove student "${m.student?.name || 'Student'}"?`);
-                      if (ok) removeStudentMutation.mutate(m.student.id);
+                      if (!s?.id) return;
+                      const ok = window.confirm(`Remove student "${s.name || 'Student'}"?`);
+                      if (ok) removeStudentMutation.mutate(s.id);
                     }}
                     disabled={removeStudentMutation.isPending}
                   >

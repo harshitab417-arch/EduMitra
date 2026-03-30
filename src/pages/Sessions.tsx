@@ -26,7 +26,42 @@ export default function SessionsPage() {
       if (topicFilter.trim()) q = q.ilike('topic', `%${topicFilter.trim()}%`);
 
       const { data } = await q;
-      return data || [];
+      const sessionsList = data || [];
+
+      const studentIds = Array.from(new Set(sessionsList.map((s: any) => s.student_id)));
+      if (!studentIds.length) {
+        return sessionsList.map((s: any) => ({ ...s, studentName: null, studentGrade: null }));
+      }
+
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('id,user_id,grade')
+        .in('id', studentIds);
+      if (studentsError) throw studentsError;
+
+      const userIds = Array.from(new Set((studentsData || []).map((s: any) => s.user_id)));
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id,name')
+        .in('user_id', userIds);
+      if (profilesError) throw profilesError;
+
+      const nameByUserId = new Map<string, string>();
+      (profilesData || []).forEach((p: any) => nameByUserId.set(p.user_id, p.name));
+
+      const studentsById = new Map<string, any>();
+      (studentsData || []).forEach((st: any) =>
+        studentsById.set(st.id, {
+          studentName: nameByUserId.get(st.user_id) || 'Student',
+          studentGrade: st.grade ?? null,
+        }),
+      );
+
+      return sessionsList.map((s: any) => ({
+        ...s,
+        studentName: studentsById.get(s.student_id)?.studentName ?? null,
+        studentGrade: studentsById.get(s.student_id)?.studentGrade ?? null,
+      }));
     },
   });
 
@@ -62,6 +97,7 @@ export default function SessionsPage() {
           <thead>
             <tr className="border-b border-border">
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">{t('common.date')}</th>
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Student</th>
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">Topic</th>
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">{t('common.status')}</th>
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">Notes</th>
@@ -71,6 +107,12 @@ export default function SessionsPage() {
             {sessions?.map((s) => (
               <tr key={s.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                 <td className="py-3 px-4">{new Date(s.date).toLocaleDateString('en-IN')}</td>
+                <td className="py-3 px-4">
+                  <div className="text-sm font-medium">{s.studentName || 'Student'}</div>
+                  {s.studentGrade !== null && s.studentGrade !== undefined && (
+                    <div className="text-xs text-muted-foreground">Grade {s.studentGrade}</div>
+                  )}
+                </td>
                 <td className="py-3 px-4 font-medium">{s.topic || '-'}</td>
                 <td className="py-3 px-4">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -83,7 +125,7 @@ export default function SessionsPage() {
               </tr>
             ))}
             {(!sessions || sessions.length === 0) && (
-              <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">{t('common.noData')}</td></tr>
+              <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">{t('common.noData')}</td></tr>
             )}
           </tbody>
         </table>

@@ -19,12 +19,14 @@ import MatchingPage from "./pages/Matching";
 import ImpactPage from "./pages/Impact";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
 import NotFound from "./pages/NotFound";
+import ThemeToggle from "./components/shared/ThemeToggle";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <ThemeToggle />
       <Toaster />
       <Sonner />
       <BrowserRouter>
