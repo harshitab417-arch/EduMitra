@@ -1,4 +1,4 @@
-# EduMitra (Vidya) - NGO Learning Support Platform
+# EduMitra (Youngistaan) - NGO Learning Support Platform
 
 EduMitra is a role-based mentoring platform built for NGOs to run consistent learning programs for underserved students.
 
