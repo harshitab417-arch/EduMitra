@@ -12,9 +12,9 @@ export default function Index() {
   };
 
   const features = [
-    { icon: GraduationCap, title: 'Student Progress Tracking', desc: 'Track learning outcomes with visual dashboards and gap analysis' },
-    { icon: Users, title: 'Smart Mentor Matching', desc: 'AI-powered matching based on expertise, availability & student needs' },
-    { icon: BarChart3, title: 'NGO Impact Dashboard', desc: 'Measure and visualize your organization\'s real-world impact' },
+    { icon: GraduationCap, title: t('home.features.progressTitle'), desc: t('home.features.progressDesc') },
+    { icon: Users, title: t('home.features.matchingTitle'), desc: t('home.features.matchingDesc') },
+    { icon: BarChart3, title: t('home.features.impactTitle'), desc: t('home.features.impactDesc') },
   ];
 
   return (
@@ -24,7 +24,7 @@ export default function Index() {
         <div className="container mx-auto flex items-center justify-between py-4 px-4">
           <div className="flex items-center gap-2 text-primary">
             <BookOpen className="h-7 w-7" />
-            <span className="text-xl font-bold">EduMitra</span>
+            <span className="text-xl font-bold">{t('app.name')}</span>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={toggleLang} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -45,8 +45,7 @@ export default function Index() {
               {t('app.tagline')}
             </h1>
             <p className="text-lg opacity-90 mb-8 leading-relaxed">
-              A comprehensive learning support platform that helps NGOs track student progress, 
-              match mentors effectively, and measure real impact in underserved communities.
+              {t('home.heroDescription')}
             </p>
             <div className="flex gap-3">
               <Button
@@ -54,13 +53,12 @@ export default function Index() {
                 onClick={() => navigate('/signup')}
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90 gap-2"
               >
-                Get Started <ArrowRight className="h-4 w-4" />
+                {t('home.getStarted')} <ArrowRight className="h-4 w-4" />
               </Button>
               <Button
                 size="lg"
-                variant="outline"
                 onClick={() => navigate('/login')}
-                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+                className="bg-violet-600 text-white hover:bg-violet-700"
               >
                 {t('nav.login')}
               </Button>
@@ -72,7 +70,7 @@ export default function Index() {
       {/* Features */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
         <h2 className="text-2xl lg:text-3xl font-bold text-center mb-12">
-          Built for Education Equity
+          {t('home.featuresHeading')}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {features.map((f, i) => (
@@ -90,7 +88,7 @@ export default function Index() {
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>EduMitra — Empowering education for every child in India 🇮🇳</p>
+          <p>{t('home.footer')}</p>
         </div>
       </footer>
     </div>

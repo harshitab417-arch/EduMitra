@@ -42,10 +42,10 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-background">
       <div className="w-full max-w-md animate-fade-in">
-        <div className="flex items-center gap-2 mb-8 text-primary">
+        <Link to="/" className="inline-flex items-center gap-2 mb-8 text-primary hover:opacity-90 transition-opacity">
           <BookOpen className="h-8 w-8" />
           <h1 className="text-2xl font-bold">EduMitra</h1>
-        </div>
+        </Link>
 
         <h2 className="text-2xl font-bold mb-2">{t('auth.signupTitle')}</h2>
         <p className="text-muted-foreground mb-8">{t('auth.signupSubtitle')}</p>

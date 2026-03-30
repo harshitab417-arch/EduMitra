@@ -3,6 +3,20 @@
     "name": "EduMitra",
     "tagline": "Empowering Education for Every Child"
   },
+  "home": {
+    "heroDescription": "A comprehensive learning support platform that helps NGOs track student progress, match mentors effectively, and measure real impact in underserved communities.",
+    "getStarted": "Get Started",
+    "featuresHeading": "Built for Education Equity",
+    "footer": "EduMitra — Empowering education for every child in India",
+    "features": {
+      "progressTitle": "Student Progress Tracking",
+      "progressDesc": "Track learning outcomes with visual dashboards and gap analysis",
+      "matchingTitle": "Smart Mentor Matching",
+      "matchingDesc": "AI-powered matching based on expertise, availability and student needs",
+      "impactTitle": "NGO Impact Dashboard",
+      "impactDesc": "Measure and visualize your organization's real-world impact"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "students": "Students",

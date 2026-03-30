@@ -1,11 +1,18 @@
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import DashboardLayout from '@/components/shared/DashboardLayout';
 import { Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export default function MentorsPage() {
   const { t } = useTranslation();
+  const { profile } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const isAdmin = profile?.role === 'admin';
 
   const { data: mentors } = useQuery({
     queryKey: ['all-mentors-page'],
@@ -25,6 +32,24 @@ export default function MentorsPage() {
         ...m,
         profiles: { name: nameByUserId.get(m.user_id) || 'Mentor' },
       }));
+    },
+  });
+
+  const removeMentorMutation = useMutation({
+    mutationFn: async (mentorId: string) => {
+      const { error } = await supabase.from('mentors').delete().eq('id', mentorId);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast({ title: 'Mentor removed' });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['all-mentors-page'] }),
+        queryClient.invalidateQueries({ queryKey: ['all-mentors'] }),
+        queryClient.invalidateQueries({ queryKey: ['matching-mentors'] }),
+      ]);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err?.message || 'Failed to remove mentor', variant: 'destructive' });
     },
   });
 
@@ -68,6 +93,21 @@ export default function MentorsPage() {
                 </div>
               </div>
             </div>
+            {isAdmin && (
+              <div className="mt-4">
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => {
+                    const ok = window.confirm(`Remove mentor "${m.profiles?.name || 'Mentor'}"?`);
+                    if (ok) removeMentorMutation.mutate(m.id);
+                  }}
+                  disabled={removeMentorMutation.isPending}
+                >
+                  Remove Mentor
+                </Button>
+              </div>
+            )}
           </div>
         ))}
         {(!mentors || mentors.length === 0) && (

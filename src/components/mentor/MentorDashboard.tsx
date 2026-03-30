@@ -58,6 +58,25 @@ export default function MentorDashboard() {
     },
   });
 
+  const removeStudentMutation = useMutation({
+    mutationFn: async (studentId: string) => {
+      const { error } = await supabase.from('students').delete().eq('id', studentId);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast({ title: 'Student removed', description: 'Student has been removed successfully.' });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['mentor-matches', mentor?.id] }),
+        queryClient.invalidateQueries({ queryKey: ['all-students-page'] }),
+        queryClient.invalidateQueries({ queryKey: ['all-students'] }),
+        queryClient.invalidateQueries({ queryKey: ['matching-students'] }),
+      ]);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err?.message || 'Failed to remove student', variant: 'destructive' });
+    },
+  });
+
   // Pre-fill inputs once we have mentor data (only if user hasn't typed yet)
   useEffect(() => {
     if (!mentor) return;
@@ -68,12 +87,39 @@ export default function MentorDashboard() {
   const { data: matches } = useQuery({
     queryKey: ['mentor-matches', mentor?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
-        .select('*, students(*, profiles:students!inner(user_id))')
+        .select('*')
         .eq('mentor_id', mentor!.id)
         .eq('status', 'active');
-      return data || [];
+      if (matchesError) throw matchesError;
+
+      const studentIds = (matchesData || []).map((m: any) => m.student_id);
+      if (!studentIds.length) return [];
+
+      const [{ data: studentsData, error: studentsError }, { data: profilesData, error: profilesError }] =
+        await Promise.all([
+          supabase.from('students').select('id,user_id,subjects').in('id', studentIds),
+          supabase.from('profiles').select('user_id,name'),
+        ]);
+      if (studentsError) throw studentsError;
+      if (profilesError) throw profilesError;
+
+      const nameByUserId = new Map<string, string>();
+      (profilesData || []).forEach((p: any) => nameByUserId.set(p.user_id, p.name));
+
+      const studentsById = new Map<string, any>();
+      (studentsData || []).forEach((s: any) =>
+        studentsById.set(s.id, {
+          ...s,
+          name: nameByUserId.get(s.user_id) || 'Student',
+        }),
+      );
+
+      return (matchesData || []).map((m: any) => ({
+        ...m,
+        student: studentsById.get(m.student_id),
+      }));
     },
     enabled: !!mentor,
   });
@@ -94,6 +140,11 @@ export default function MentorDashboard() {
 
   const completedSessions = sessions?.filter(s => s.status === 'completed').length || 0;
   const upcomingSessions = sessions?.filter(s => s.status === 'scheduled').length || 0;
+  const mentorSubjects = (mentor?.expertise || []).map((s: string) => s.toLowerCase());
+  const filteredMatches = (matches || []).filter((m: any) => {
+    const studentSubjects = (m.student?.subjects || []).map((s: string) => s.toLowerCase());
+    return studentSubjects.some((s: string) => mentorSubjects.includes(s));
+  });
 
   return (
     <div className="space-y-6">
@@ -132,7 +183,7 @@ export default function MentorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title={t('mentor.myStudents')} value={matches?.length || 0} icon={Users} variant="primary" />
+        <StatCard title={t('mentor.myStudents')} value={filteredMatches.length || 0} icon={Users} variant="primary" />
         <StatCard title={t('dashboard.sessionsCompleted')} value={completedSessions} icon={Calendar} variant="success" />
         <StatCard title={t('dashboard.upcomingSessions')} value={upcomingSessions} icon={BookOpen} variant="warning" />
         <StatCard title="Expertise" value={mentor?.expertise?.length || 0} icon={TrendingUp} variant="secondary" />
@@ -168,17 +219,29 @@ export default function MentorDashboard() {
         {/* My Students */}
         <div className="stat-card">
           <h3 className="font-semibold mb-4">{t('mentor.myStudents')}</h3>
-          {matches && matches.length > 0 ? (
+          {filteredMatches.length > 0 ? (
             <div className="space-y-2">
-              {matches.map((m: any) => (
+              {filteredMatches.map((m: any) => (
                 <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                    S
+                    {m.student?.name?.[0] || 'S'}
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">Student</p>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{m.student?.name || 'Student'}</p>
                     <p className="text-xs text-muted-foreground">Match: {m.match_score}%</p>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      if (!m.student?.id) return;
+                      const ok = window.confirm(`Remove student "${m.student?.name || 'Student'}"?`);
+                      if (ok) removeStudentMutation.mutate(m.student.id);
+                    }}
+                    disabled={removeStudentMutation.isPending}
+                  >
+                    Remove
+                  </Button>
                 </div>
               ))}
             </div>

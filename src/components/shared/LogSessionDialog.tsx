@@ -15,9 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const schema = z.object({
-  studentId: z.string().min(1, "Select a student"),
+  studentIds: z.array(z.string()).min(1, "Select at least one student"),
   mentorId: z.string().optional(),
   subject: z.string().min(1, "Subject is required"),
   topic: z.string().min(1, "Topic is required"),
@@ -27,7 +28,7 @@ const schema = z.object({
   status: z.enum(["completed", "scheduled"]),
 });
 
-export type LogSessionDefaults = Partial<z.infer<typeof schema>>;
+export type LogSessionDefaults = Partial<z.infer<typeof schema>> & { studentId?: string };
 
 export default function LogSessionDialog({
   open,
@@ -42,11 +43,12 @@ export default function LogSessionDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [score, setScore] = useState<number>(defaults?.score ?? 70);
+  const [studentSearch, setStudentSearch] = useState("");
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
-      studentId: defaults?.studentId ?? "",
+      studentIds: defaults?.studentIds ?? (defaults?.studentId ? [defaults.studentId] : []),
       mentorId: defaults?.mentorId,
       subject: defaults?.subject ?? "",
       topic: defaults?.topic ?? "",
@@ -66,7 +68,7 @@ export default function LogSessionDialog({
     queryFn: async () => {
       const [{ data: studentsData, error: studentsError }, { data: profilesData, error: profilesError }] =
         await Promise.all([
-          supabase.from("students").select("id,user_id,grade"),
+          supabase.from("students").select("id,user_id,grade,subjects"),
           supabase.from("profiles").select("user_id,name"),
         ]);
       if (studentsError) throw studentsError;
@@ -78,6 +80,7 @@ export default function LogSessionDialog({
       return (studentsData || []).map((s: any) => ({
         id: s.id,
         grade: s.grade,
+        subjects: s.subjects || [],
         name: nameByUserId.get(s.user_id) || "Student",
       }));
     },
@@ -109,18 +112,39 @@ export default function LogSessionDialog({
   const { data: myMentor } = useQuery({
     queryKey: ["log-session-my-mentor", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("mentors").select("id").eq("user_id", user!.id).single();
+      const { data, error } = await supabase.from("mentors").select("id,expertise").eq("user_id", user!.id).single();
       if (error) throw error;
-      return data as { id: string };
+      return data as { id: string; expertise: string[] };
     },
     enabled: open && profile?.role === "mentor" && !!user,
   });
 
-  const selectedStudentId = form.watch("studentId");
-  const selectedStudent = useMemo(
-    () => students?.find((s) => s.id === selectedStudentId),
-    [students, selectedStudentId],
-  );
+  const selectedStudentIds = form.watch("studentIds");
+  const mentorSubjects = (myMentor?.expertise || []).filter(Boolean);
+  const selectedSubject = form.watch("subject");
+
+  const visibleStudents = useMemo(() => {
+    const searched = (students || []).filter((s: any) =>
+      s.name.toLowerCase().includes(studentSearch.toLowerCase()),
+    );
+
+    if (profile?.role !== "mentor" || !selectedSubject) return searched;
+    return searched.filter((s: any) =>
+      (s.subjects || []).some((sub: string) => sub.toLowerCase() === selectedSubject.toLowerCase()),
+    );
+  }, [students, studentSearch, profile?.role, selectedSubject]);
+
+  const allVisibleSelected =
+    visibleStudents.length > 0 && visibleStudents.every((s: any) => selectedStudentIds.includes(s.id));
+
+  useEffect(() => {
+    if (profile?.role === "mentor" && mentorSubjects.length > 0) {
+      const current = form.getValues("subject");
+      if (!current || !mentorSubjects.includes(current)) {
+        form.setValue("subject", mentorSubjects[0]);
+      }
+    }
+  }, [profile?.role, mentorSubjects, form]);
 
   const saveMutation = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
@@ -129,70 +153,78 @@ export default function LogSessionDialog({
       const mentorId = profile?.role === "mentor" ? myMentor?.id : values.mentorId;
       if (!mentorId) throw new Error("Select a mentor (required for logging sessions)");
 
-      // Ensure a topic exists in learning_topics (mentor/admin allowed by RLS)
-      const grade = selectedStudent?.grade ?? null;
-      if (!grade) throw new Error("Student grade not found");
-
-      const { data: existingTopic, error: topicFindError } = await supabase
-        .from("learning_topics")
-        .select("id")
-        .eq("grade", grade)
-        .eq("subject", values.subject)
-        .eq("topic", values.topic)
-        .maybeSingle();
-      if (topicFindError) throw topicFindError;
-
-      let topicId = existingTopic?.id as string | undefined;
-      if (!topicId) {
-        const { data: createdTopic, error: topicCreateError } = await supabase
-          .from("learning_topics")
-          .insert({
-            grade,
-            subject: values.subject,
-            topic: values.topic,
-            sort_order: 0,
-            lesson_plan_id: values.lessonPlanId ?? null,
-          })
-          .select("id")
-          .single();
-        if (topicCreateError) throw topicCreateError;
-        topicId = createdTopic.id as string;
+      if (profile?.role === "mentor") {
+        const expertise = (myMentor?.expertise || []).map((s) => s.toLowerCase());
+        if (!expertise.includes(values.subject.toLowerCase())) {
+          throw new Error("You can only log subjects from your mentor expertise.");
+        }
       }
 
-      // Insert session
-      const { error: sessionError } = await supabase.from("sessions").insert({
-        student_id: values.studentId,
-        mentor_id: mentorId,
-        topic: values.topic,
-        notes: values.notes ?? "",
-        status: values.status,
-      });
-      if (sessionError) throw sessionError;
-
-      // Insert progress snapshot
-      const { error: progressError } = await supabase.from("progress").insert({
-        student_id: values.studentId,
-        subject: values.subject,
-        topic: values.topic,
-        score: values.score,
-      });
-      if (progressError) throw progressError;
-
-      // Upsert milestone
+      const studentsById = new Map((students || []).map((s) => [s.id, s]));
       const status: "not_started" | "in_progress" | "completed" | "flagged" =
         values.score >= 75 ? "completed" : values.score >= 40 ? "in_progress" : "flagged";
 
-      const { error: milestoneError } = await supabase.from("student_milestones").upsert(
-        {
-          student_id: values.studentId,
-          topic_id: topicId,
-          status,
-          last_session_at: new Date().toISOString(),
-          last_score: values.score,
-        },
-        { onConflict: "student_id,topic_id" },
-      );
-      if (milestoneError) throw milestoneError;
+      for (const studentId of values.studentIds) {
+        const student = studentsById.get(studentId);
+        const grade = student?.grade ?? null;
+        if (!grade) throw new Error("Student grade not found");
+
+        // Ensure a topic exists in learning_topics for this student's grade.
+        const { data: existingTopic, error: topicFindError } = await supabase
+          .from("learning_topics")
+          .select("id")
+          .eq("grade", grade)
+          .eq("subject", values.subject)
+          .eq("topic", values.topic)
+          .maybeSingle();
+        if (topicFindError) throw topicFindError;
+
+        let topicId = existingTopic?.id as string | undefined;
+        if (!topicId) {
+          const { data: createdTopic, error: topicCreateError } = await supabase
+            .from("learning_topics")
+            .insert({
+              grade,
+              subject: values.subject,
+              topic: values.topic,
+              sort_order: 0,
+              lesson_plan_id: values.lessonPlanId ?? null,
+            })
+            .select("id")
+            .single();
+          if (topicCreateError) throw topicCreateError;
+          topicId = createdTopic.id as string;
+        }
+
+        const { error: sessionError } = await supabase.from("sessions").insert({
+          student_id: studentId,
+          mentor_id: mentorId,
+          topic: values.topic,
+          notes: values.notes ?? "",
+          status: values.status,
+        });
+        if (sessionError) throw sessionError;
+
+        const { error: progressError } = await supabase.from("progress").insert({
+          student_id: studentId,
+          subject: values.subject,
+          topic: values.topic,
+          score: values.score,
+        });
+        if (progressError) throw progressError;
+
+        const { error: milestoneError } = await supabase.from("student_milestones").upsert(
+          {
+            student_id: studentId,
+            topic_id: topicId,
+            status,
+            last_session_at: new Date().toISOString(),
+            last_score: values.score,
+          },
+          { onConflict: "student_id,topic_id" },
+        );
+        if (milestoneError) throw milestoneError;
+      }
     },
     onSuccess: async () => {
       toast({ title: "Session logged", description: "Milestone and progress updated." });
@@ -203,7 +235,16 @@ export default function LogSessionDialog({
         queryClient.invalidateQueries({ queryKey: ["log-session-students"] }),
       ]);
       onOpenChange(false);
-      form.reset();
+      form.reset({
+        studentIds: [],
+        mentorId: "",
+        subject: profile?.role === "mentor" ? (mentorSubjects[0] || "") : "",
+        topic: "",
+        lessonPlanId: "",
+        score: 70,
+        notes: "",
+        status: "completed",
+      });
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err?.message ?? "Failed to log session", variant: "destructive" });
@@ -228,23 +269,62 @@ export default function LogSessionDialog({
           >
             <FormField
               control={form.control}
-              name="studentId"
-              render={({ field }) => (
+              name="studentIds"
+              render={() => (
                 <FormItem>
-                  <FormLabel>Student</FormLabel>
+                  <FormLabel>Students</FormLabel>
+                  <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                    <Input
+                      value={studentSearch}
+                      onChange={(e) => setStudentSearch(e.target.value)}
+                      placeholder="Search by student name"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const current = form.getValues("studentIds");
+                        const visibleIds = visibleStudents.map((s: any) => s.id);
+                        if (allVisibleSelected) {
+                          const visibleSet = new Set(visibleIds);
+                          form.setValue(
+                            "studentIds",
+                            current.filter((id) => !visibleSet.has(id)),
+                            { shouldValidate: true },
+                          );
+                          return;
+                        }
+                        const merged = new Set([...current, ...visibleIds]);
+                        form.setValue("studentIds", Array.from(merged), { shouldValidate: true });
+                      }}
+                    >
+                      {allVisibleSelected ? "Clear visible" : "Select all visible"}
+                    </Button>
+                  </div>
                   <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select student" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(students || []).map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name} (Grade {s.grade})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="max-h-44 overflow-auto rounded-md border border-input p-3 space-y-2">
+                      {visibleStudents.map((s: any) => {
+                        const checked = selectedStudentIds.includes(s.id);
+                        return (
+                          <label key={s.id} className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(isChecked) => {
+                                const current = form.getValues("studentIds");
+                                const next = isChecked
+                                  ? [...current, s.id]
+                                  : current.filter((id) => id !== s.id);
+                                form.setValue("studentIds", next, { shouldValidate: true });
+                              }}
+                            />
+                            <span>{s.name} (Grade {s.grade})</span>
+                          </label>
+                        );
+                      })}
+                      {visibleStudents.length === 0 && (
+                        <p className="text-xs text-muted-foreground">No students match current filters.</p>
+                      )}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -286,7 +366,22 @@ export default function LogSessionDialog({
                   <FormItem>
                     <FormLabel>Subject</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Mathematics" {...field} />
+                      {profile?.role === "mentor" ? (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your subject" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mentorSubjects.map((subj) => (
+                              <SelectItem key={subj} value={subj}>
+                                {subj}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input placeholder="e.g., Mathematics" {...field} />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>

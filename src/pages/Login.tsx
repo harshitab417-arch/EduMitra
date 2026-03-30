@@ -35,10 +35,10 @@ export default function LoginPage() {
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 gradient-hero items-center justify-center p-12">
         <div className="max-w-md text-primary-foreground animate-fade-in">
-          <div className="flex items-center gap-3 mb-8">
+          <Link to="/" className="inline-flex items-center gap-3 mb-8 hover:opacity-90 transition-opacity">
             <BookOpen className="h-10 w-10" />
             <h1 className="text-3xl font-bold">EduMitra</h1>
-          </div>
+          </Link>
           <p className="text-xl mb-8 opacity-90">{t('app.tagline')}</p>
           <div className="space-y-4 opacity-80">
             <div className="flex items-center gap-3">
@@ -60,10 +60,10 @@ export default function LoginPage() {
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md animate-fade-in">
-          <div className="lg:hidden flex items-center gap-2 mb-8 text-primary">
+          <Link to="/" className="lg:hidden inline-flex items-center gap-2 mb-8 text-primary hover:opacity-90 transition-opacity">
             <BookOpen className="h-8 w-8" />
             <h1 className="text-2xl font-bold">EduMitra</h1>
-          </div>
+          </Link>
           
           <h2 className="text-2xl font-bold mb-2">{t('auth.loginTitle')}</h2>
           <p className="text-muted-foreground mb-8">{t('auth.loginSubtitle')}</p>
