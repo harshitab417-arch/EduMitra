@@ -26,27 +26,29 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <ThemeToggle />
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
-            <Route path="/mentors" element={<ProtectedRoute><MentorsPage /></ProtectedRoute>} />
-            <Route path="/sessions" element={<ProtectedRoute><SessionsPage /></ProtectedRoute>} />
-            <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
-            <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
-            <Route path="/matching" element={<ProtectedRoute><MatchingPage /></ProtectedRoute>} />
-            <Route path="/impact" element={<ProtectedRoute><ImpactPage /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
+      <div className="app-shell">
+        <ThemeToggle />
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
+              <Route path="/mentors" element={<ProtectedRoute><MentorsPage /></ProtectedRoute>} />
+              <Route path="/sessions" element={<ProtectedRoute><SessionsPage /></ProtectedRoute>} />
+              <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+              <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
+              <Route path="/matching" element={<ProtectedRoute><MatchingPage /></ProtectedRoute>} />
+              <Route path="/impact" element={<ProtectedRoute><ImpactPage /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </div>
     </TooltipProvider>
   </QueryClientProvider>
 );

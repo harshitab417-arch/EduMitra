@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import StatCard from '@/components/shared/StatCard';
 import { BarChart3, TrendingUp, BookOpen, Target } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import PageHeader from '@/components/shared/PageHeader';
 
 export default function ProgressPage() {
   const { t } = useTranslation();
@@ -56,12 +57,11 @@ export default function ProgressPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <BarChart3 className="h-6 w-6 text-primary" />
-          {t('student.myProgress')}
-        </h1>
-      </div>
+      <PageHeader
+        title={t('student.myProgress')}
+        subtitle="Track score trends and performance by subject."
+        icon={<BarChart3 className="h-6 w-6 text-primary" />}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <StatCard title="Overall Average" value={`${overallAvg}%`} icon={TrendingUp} variant="primary" />

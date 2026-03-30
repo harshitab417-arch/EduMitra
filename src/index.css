@@ -110,12 +110,53 @@
 }
 
 @layer utilities {
+  .app-shell {
+    position: relative;
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 600px at 20% 10%, hsl(var(--primary) / 0.16), transparent 60%),
+      radial-gradient(900px 500px at 80% 20%, hsl(262 83% 58% / 0.14), transparent 60%),
+      radial-gradient(900px 700px at 40% 90%, hsl(var(--secondary) / 0.14), transparent 60%),
+      linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
+  }
+
+  .app-shell::before,
+  .app-shell::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    pointer-events: none;
+    opacity: 0.6;
+    filter: blur(40px);
+    transform: translateZ(0);
+  }
+
+  .app-shell::before {
+    background:
+      radial-gradient(500px 300px at 15% 20%, hsl(var(--primary) / 0.22), transparent 60%),
+      radial-gradient(400px 240px at 85% 30%, hsl(262 83% 58% / 0.18), transparent 60%);
+    animation: float-orbs 10s ease-in-out infinite;
+  }
+
+  .app-shell::after {
+    background:
+      radial-gradient(420px 260px at 35% 85%, hsl(var(--secondary) / 0.16), transparent 65%),
+      radial-gradient(380px 240px at 70% 75%, hsl(var(--info) / 0.12), transparent 65%);
+    animation: float-orbs 14s ease-in-out infinite reverse;
+  }
+
   .glass-card {
     @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm;
   }
 
   .stat-card {
-    @apply bg-card rounded-xl border border-border/50 p-5 shadow-sm hover:shadow-md transition-shadow;
+    @apply bg-card/90 rounded-xl border border-border/50 p-5 shadow-sm transition-all;
+    transform: translateZ(0);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 50px -30px rgba(0, 0, 0, 0.35);
   }
 
   .gradient-primary {
@@ -128,5 +169,24 @@
 
   .gradient-hero {
     background: linear-gradient(135deg, hsl(174 62% 22%), hsl(174 62% 32%), hsl(200 50% 35%));
+  }
+}
+
+@keyframes float-orbs {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell::before,
+  .app-shell::after {
+    animation: none !important;
+  }
+  .stat-card:hover {
+    transform: none;
   }
 }

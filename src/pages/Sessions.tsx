@@ -7,6 +7,7 @@ import { Calendar, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import LogSessionDialog from '@/components/shared/LogSessionDialog';
+import PageHeader from '@/components/shared/PageHeader';
 
 export default function SessionsPage() {
   const { t } = useTranslation();
@@ -69,15 +70,16 @@ export default function SessionsPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Calendar className="h-6 w-6 text-primary" />
-          {t('nav.sessions')}
-        </h1>
-        <Button onClick={() => setLogOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> Log New Session
-        </Button>
-      </div>
+      <PageHeader
+        title={t('nav.sessions')}
+        subtitle="Log sessions fast and review history with context."
+        icon={<Calendar className="h-6 w-6 text-primary" />}
+        actions={
+          <Button onClick={() => setLogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" /> Log New Session
+          </Button>
+        }
+      />
 
       <div className="stat-card mb-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

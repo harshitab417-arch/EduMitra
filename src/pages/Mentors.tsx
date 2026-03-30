@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createIsolatedAuthClient } from '@/lib/isolatedAuthClient';
+import PageHeader from '@/components/shared/PageHeader';
 
 export default function MentorsPage() {
   const { t } = useTranslation();
@@ -121,17 +122,18 @@ export default function MentorsPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex items-start justify-between gap-3">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Users className="h-6 w-6 text-primary" />
-          {t('nav.mentors')}
-        </h1>
-        {isAdmin && (
-          <Button variant="outline" onClick={() => setShowAddMentorForm((v) => !v)}>
-            {showAddMentorForm ? 'Hide Add Mentor' : 'Add Mentor Directly'}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={t('nav.mentors')}
+        subtitle="Manage mentors, expertise, and availability for better matching."
+        icon={<Users className="h-6 w-6 text-primary" />}
+        actions={
+          isAdmin ? (
+            <Button variant="outline" onClick={() => setShowAddMentorForm((v) => !v)}>
+              {showAddMentorForm ? 'Hide Add Mentor' : 'Add Mentor Directly'}
+            </Button>
+          ) : null
+        }
+      />
 
       {isAdmin && showAddMentorForm && (
         <div className="stat-card mb-4">

@@ -218,7 +218,7 @@ export default function MentorDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="stat-card">
+      <div className="stat-card border border-border/60">
         <h3 className="font-semibold mb-1">Mentor setup (for matching)</h3>
         <p className="text-sm text-muted-foreground mb-4">
           Fill these so the auto-matching and “My Students” assignment becomes meaningful.
@@ -252,16 +252,19 @@ export default function MentorDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Snapshot</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={t('mentor.myStudents')} value={myStudents?.length || 0} icon={Users} variant="primary" />
         <StatCard title={t('dashboard.sessionsCompleted')} value={completedSessions} icon={Calendar} variant="success" />
         <StatCard title={t('dashboard.upcomingSessions')} value={upcomingSessions} icon={BookOpen} variant="warning" />
         <StatCard title="Expertise" value={mentor?.expertise?.length || 0} icon={TrendingUp} variant="secondary" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Sessions */}
-        <div className="stat-card">
+        <div className="stat-card border border-border/60">
           <h3 className="font-semibold mb-4">{t('dashboard.recentSessions')}</h3>
           {recentSession ? (
             <div className="space-y-2">
@@ -288,7 +291,7 @@ export default function MentorDashboard() {
         </div>
 
         {/* My Students */}
-        <div className="stat-card">
+        <div className="stat-card border border-border/60">
           <h3 className="font-semibold mb-4">{t('mentor.myStudents')}</h3>
           {myStudents && myStudents.length > 0 ? (
             <div className="space-y-2">
@@ -319,7 +322,7 @@ export default function MentorDashboard() {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm text-center py-8">{t('common.noData')}</p>
+            <p className="text-muted-foreground text-sm text-center py-8">No students found for your expertise yet.</p>
           )}
         </div>
       </div>

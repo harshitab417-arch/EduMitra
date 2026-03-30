@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LogSessionDialog from '@/components/shared/LogSessionDialog';
+import PageHeader from '@/components/shared/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createIsolatedAuthClient } from '@/lib/isolatedAuthClient';
@@ -286,17 +287,18 @@ export default function StudentsPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex items-start justify-between gap-3">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <GraduationCap className="h-6 w-6 text-primary" />
-          {t('nav.students')}
-        </h1>
-        {canAddStudent && (
-          <Button variant="outline" onClick={() => setShowAddStudentForm((v) => !v)}>
-            {showAddStudentForm ? 'Hide Add Student' : 'Add Student Directly'}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={t('nav.students')}
+        subtitle="Manage learners, track status, and log sessions quickly."
+        icon={<GraduationCap className="h-6 w-6 text-primary" />}
+        actions={
+          canAddStudent ? (
+            <Button variant="outline" onClick={() => setShowAddStudentForm((v) => !v)}>
+              {showAddStudentForm ? 'Hide Add Student' : 'Add Student Directly'}
+            </Button>
+          ) : null
+        }
+      />
 
       {showAddStudentForm && (
         <div className="stat-card mb-4">

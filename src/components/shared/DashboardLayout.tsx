@@ -3,7 +3,7 @@ import AppSidebar from './AppSidebar';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen">
       <AppSidebar />
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         {children}

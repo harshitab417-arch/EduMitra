@@ -40,8 +40,8 @@ export default function SignupPage() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-background">
-      <div className="w-full max-w-md animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center p-6 sm:p-8">
+      <div className="w-full max-w-md animate-fade-in bg-card/80 backdrop-blur rounded-2xl border border-border/60 shadow-lg p-6 sm:p-8">
         <Link to="/" className="inline-flex items-center gap-2 mb-8 text-primary hover:opacity-90 transition-opacity">
           <BookOpen className="h-8 w-8" />
           <h1 className="text-2xl font-bold">EduMitra</h1>

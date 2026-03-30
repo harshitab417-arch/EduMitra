@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/shared/DashboardLayout';
 import StatCard from '@/components/shared/StatCard';
 import { BarChart3, GraduationCap, Users, Calendar, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
+import PageHeader from '@/components/shared/PageHeader';
 
 export default function ImpactPage() {
   const { t } = useTranslation();
@@ -71,13 +72,11 @@ export default function ImpactPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <BarChart3 className="h-6 w-6 text-primary" />
-          {t('nav.impact')} Dashboard
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">Comprehensive NGO impact metrics</p>
-      </div>
+      <PageHeader
+        title={`${t('nav.impact')} Dashboard`}
+        subtitle="Live program metrics: sessions, coverage, and learning trends."
+        icon={<BarChart3 className="h-6 w-6 text-primary" />}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard title={t('dashboard.totalStudents')} value={totalStudents} icon={GraduationCap} variant="primary" />

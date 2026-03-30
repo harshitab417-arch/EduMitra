@@ -4,6 +4,8 @@ import DashboardLayout from '@/components/shared/DashboardLayout';
 import StudentDashboard from '@/components/student/StudentDashboard';
 import MentorDashboard from '@/components/mentor/MentorDashboard';
 import AdminDashboard from '@/components/admin/AdminDashboard';
+import PageHeader from '@/components/shared/PageHeader';
+import { LayoutDashboard } from 'lucide-react';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -12,12 +14,11 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">
-          {t('dashboard.welcome')}, {profile?.name || 'User'} 👋
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1 capitalize">{role} {t('nav.dashboard')}</p>
-      </div>
+      <PageHeader
+        title={`${t('dashboard.welcome')}, ${profile?.name || 'User'}`}
+        subtitle={`${role} ${t('nav.dashboard')}`}
+        icon={<LayoutDashboard className="h-6 w-6 text-primary" />}
+      />
       {role === 'student' && <StudentDashboard />}
       {role === 'mentor' && <MentorDashboard />}
       {role === 'admin' && <AdminDashboard />}

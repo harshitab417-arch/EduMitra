@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import StatCard from '@/components/shared/StatCard';
 import { GraduationCap, Users, Calendar, TrendingUp, AlertTriangle } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { calculateRiskScore } from '@/lib/matcher';
 
 export default function AdminDashboard() {
@@ -103,16 +103,19 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Platform Snapshot</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={t('dashboard.totalStudents')} value={totalStudents} icon={GraduationCap} variant="primary" change="+12%" />
         <StatCard title={t('dashboard.activeMentors')} value={totalMentors} icon={Users} variant="secondary" change="+5%" />
         <StatCard title={t('dashboard.sessionsCompleted')} value={completedSessions} icon={Calendar} variant="success" change="+23%" />
         <StatCard title={t('dashboard.avgProgress')} value={`${avgProgress}%`} icon={TrendingUp} variant="warning" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Subject Performance */}
-        <div className="stat-card">
+        <div className="stat-card border border-border/60">
           <h3 className="font-semibold mb-4">{t('dashboard.progressOverview')}</h3>
           {subjectData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
@@ -130,7 +133,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Engagement */}
-        <div className="stat-card">
+        <div className="stat-card border border-border/60">
           <h3 className="font-semibold mb-4">{t('dashboard.engagementRate')}</h3>
           {totalStudents > 0 ? (
             <div className="flex items-center justify-center">
@@ -152,7 +155,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* At Risk Students */}
-      <div className="stat-card">
+      <div className="stat-card border border-border/60">
         <div className="flex items-center gap-2 mb-4">
           <AlertTriangle className="h-5 w-5 text-destructive" />
           <h3 className="font-semibold">{t('dashboard.atRiskStudents')}</h3>

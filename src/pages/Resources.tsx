@@ -6,6 +6,7 @@ import { FolderOpen, BookOpen, Clock, Target, Play, Pin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LogSessionDialog from '@/components/shared/LogSessionDialog';
 import PinResourceDialog from '@/components/shared/PinResourceDialog';
+import PageHeader from '@/components/shared/PageHeader';
 
 export default function ResourcesPage() {
   const { t } = useTranslation();
@@ -33,12 +34,11 @@ export default function ResourcesPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FolderOpen className="h-6 w-6 text-primary" />
-          {t('nav.resources')}
-        </h1>
-      </div>
+      <PageHeader
+        title={t('nav.resources')}
+        subtitle="Pick a structured plan, start a session, and pin follow-ups."
+        icon={<FolderOpen className="h-6 w-6 text-primary" />}
+      />
 
       {/* Subject filter */}
       <div className="flex gap-2 mb-6 flex-wrap">

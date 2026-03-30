@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Shuffle, Zap } from 'lucide-react';
 import { findBestMatches, StudentProfile, MentorProfile } from '@/lib/matcher';
 import { useToast } from '@/hooks/use-toast';
+import PageHeader from '@/components/shared/PageHeader';
 
 export default function MatchingPage() {
   const { t } = useTranslation();
@@ -121,15 +122,16 @@ export default function MatchingPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Shuffle className="h-6 w-6 text-primary" />
-          {t('nav.matching')}
-        </h1>
-        <Button onClick={runMatching} className="gap-2">
-          <Zap className="h-4 w-4" /> Run Auto-Match
-        </Button>
-      </div>
+      <PageHeader
+        title={t('nav.matching')}
+        subtitle="Generate explainable mentor recommendations and save matches."
+        icon={<Shuffle className="h-6 w-6 text-primary" />}
+        actions={
+          <Button onClick={runMatching} className="gap-2">
+            <Zap className="h-4 w-4" /> Run Auto-Match
+          </Button>
+        }
+      />
 
       {/* Results */}
       {results.length > 0 && (

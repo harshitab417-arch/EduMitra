@@ -123,7 +123,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="stat-card">
+      <div className="stat-card border border-border/60">
         <h3 className="font-semibold mb-1">Student setup (for matching + milestones)</h3>
         <p className="text-sm text-muted-foreground mb-4">
           Fill these so mentors get matched correctly and progress tracking is accurate.
@@ -180,16 +180,19 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Snapshot</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={t('student.subjects')} value={student?.subjects?.length || 0} icon={BookOpen} variant="primary" />
         <StatCard title={t('student.scores')} value={`${avgScore}%`} icon={TrendingUp} variant="success" />
         <StatCard title={t('dashboard.sessionsCompleted')} value={completedSessions} icon={Calendar} variant="secondary" />
         <StatCard title={t('common.grade')} value={`Grade ${student?.grade || '-'}`} icon={Target} variant="default" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Progress Chart */}
-        <div className="lg:col-span-2 stat-card">
+        <div className="lg:col-span-2 stat-card border border-border/60">
           <h3 className="font-semibold mb-4">{t('dashboard.progressOverview')}</h3>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
@@ -207,7 +210,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Mentor Info */}
-        <div className="stat-card">
+        <div className="stat-card border border-border/60">
           <h3 className="font-semibold mb-4">{t('student.myMentor')}</h3>
           {match ? (
             <div className="space-y-3">
@@ -222,7 +225,7 @@ export default function StudentDashboard() {
               </div>
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm">{t('common.noData')}</p>
+            <p className="text-muted-foreground text-sm">No active mentor match yet.</p>
           )}
 
           <h3 className="font-semibold mt-6 mb-3">{t('dashboard.recentSessions')}</h3>
@@ -240,7 +243,7 @@ export default function StudentDashboard() {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm">{t('common.noData')}</p>
+            <p className="text-muted-foreground text-sm">No recent sessions logged yet.</p>
           )}
         </div>
       </div>

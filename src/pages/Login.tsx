@@ -59,7 +59,7 @@ export default function LoginPage() {
 
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md animate-fade-in">
+        <div className="w-full max-w-md animate-fade-in bg-card/80 backdrop-blur rounded-2xl border border-border/60 shadow-lg p-6 sm:p-8">
           <Link to="/" className="lg:hidden inline-flex items-center gap-2 mb-8 text-primary hover:opacity-90 transition-opacity">
             <BookOpen className="h-8 w-8" />
             <h1 className="text-2xl font-bold">EduMitra</h1>
