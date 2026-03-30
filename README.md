@@ -193,4 +193,4 @@ This is intentionally explainable and deterministic for NGO operations and demos
 ## Contributors
 
 - Kuldeep Reddy
-- Vedish Chellangi
+- Chellangi Vedish
