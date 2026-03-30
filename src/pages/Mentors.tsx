@@ -1,9 +1,11 @@
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import DashboardLayout from '@/components/shared/DashboardLayout';
 import { Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,6 +15,21 @@ export default function MentorsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isAdmin = profile?.role === 'admin';
+  const [showAddMentorForm, setShowAddMentorForm] = useState(false);
+  const [mentorName, setMentorName] = useState('');
+  const [mentorEmail, setMentorEmail] = useState('');
+  const [mentorPassword, setMentorPassword] = useState('');
+  const [mentorExpertiseText, setMentorExpertiseText] = useState('');
+  const [mentorAvailabilityText, setMentorAvailabilityText] = useState('');
+
+  const mentorExpertise = useMemo(
+    () => mentorExpertiseText.split(',').map(s => s.trim()).filter(Boolean),
+    [mentorExpertiseText],
+  );
+  const mentorAvailability = useMemo(
+    () => mentorAvailabilityText.split(',').map(s => s.trim()).filter(Boolean),
+    [mentorAvailabilityText],
+  );
 
   const { data: mentors } = useQuery({
     queryKey: ['all-mentors-page'],
@@ -53,14 +70,110 @@ export default function MentorsPage() {
     },
   });
 
+  const addMentorMutation = useMutation({
+    mutationFn: async () => {
+      if (!mentorName || !mentorEmail || !mentorPassword) {
+        throw new Error('Name, email and password are required');
+      }
+      if (mentorExpertise.length === 0) {
+        throw new Error('Add at least one expertise subject');
+      }
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: mentorEmail,
+        password: mentorPassword,
+        options: { data: { name: mentorName, role: 'mentor' } },
+      });
+      if (signUpError) throw signUpError;
+
+      const newMentorUserId = signUpData.user?.id;
+      if (!newMentorUserId) throw new Error('Mentor account was not created.');
+
+      const { error: updateError } = await supabase
+        .from('mentors')
+        .update({
+          expertise: mentorExpertise,
+          availability: mentorAvailability,
+        })
+        .eq('user_id', newMentorUserId);
+      if (updateError) throw updateError;
+    },
+    onSuccess: async () => {
+      toast({ title: 'Mentor added', description: 'Mentor account and profile created successfully.' });
+      setMentorName('');
+      setMentorEmail('');
+      setMentorPassword('');
+      setMentorExpertiseText('');
+      setMentorAvailabilityText('');
+      setShowAddMentorForm(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['all-mentors-page'] }),
+        queryClient.invalidateQueries({ queryKey: ['all-mentors'] }),
+        queryClient.invalidateQueries({ queryKey: ['matching-mentors'] }),
+      ]);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err?.message || 'Failed to add mentor', variant: 'destructive' });
+    },
+  });
+
   return (
     <DashboardLayout>
-      <div className="mb-6">
+      <div className="mb-6 flex items-start justify-between gap-3">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Users className="h-6 w-6 text-primary" />
           {t('nav.mentors')}
         </h1>
+        {isAdmin && (
+          <Button variant="outline" onClick={() => setShowAddMentorForm((v) => !v)}>
+            {showAddMentorForm ? 'Hide Add Mentor' : 'Add Mentor Directly'}
+          </Button>
+        )}
       </div>
+
+      {isAdmin && showAddMentorForm && (
+        <div className="stat-card mb-4">
+          <h3 className="font-semibold mb-1">Add mentor directly</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Creates a mentor account and sets expertise + availability for matching.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Mentor name</p>
+              <Input value={mentorName} onChange={(e) => setMentorName(e.target.value)} placeholder="e.g., Priya Sharma" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Mentor email</p>
+              <Input type="email" value={mentorEmail} onChange={(e) => setMentorEmail(e.target.value)} placeholder="mentor@email.com" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Temporary password</p>
+              <Input type="password" value={mentorPassword} onChange={(e) => setMentorPassword(e.target.value)} placeholder="Minimum 6 characters" />
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-xs text-muted-foreground mb-1">Expertise (comma-separated)</p>
+              <Input
+                value={mentorExpertiseText}
+                onChange={(e) => setMentorExpertiseText(e.target.value)}
+                placeholder="e.g., Mathematics, Physics, Chemistry"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-xs text-muted-foreground mb-1">Availability (comma-separated)</p>
+              <Input
+                value={mentorAvailabilityText}
+                onChange={(e) => setMentorAvailabilityText(e.target.value)}
+                placeholder="e.g., Mon 5pm, Wed 6pm, Sat 10am"
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button onClick={() => addMentorMutation.mutate()} disabled={addMentorMutation.isPending}>
+              {addMentorMutation.isPending ? 'Adding...' : 'Add Mentor'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {mentors?.map((m: any) => (
