@@ -1,0 +1,82 @@
+{
+  "app": {
+    "name": "एडुमित्र",
+    "tagline": "हर बच्चे के लिए शिक्षा सशक्तिकरण"
+  },
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "students": "छात्र",
+    "mentors": "मेंटर",
+    "sessions": "सत्र",
+    "resources": "संसाधन",
+    "progress": "प्रगति",
+    "matching": "मिलान",
+    "impact": "प्रभाव",
+    "settings": "सेटिंग्स",
+    "logout": "लॉग आउट",
+    "login": "लॉग इन",
+    "signup": "साइन अप"
+  },
+  "auth": {
+    "loginTitle": "वापस स्वागत है",
+    "loginSubtitle": "अपनी यात्रा जारी रखने के लिए साइन इन करें",
+    "signupTitle": "एडुमित्र से जुड़ें",
+    "signupSubtitle": "शुरू करने के लिए अपना खाता बनाएं",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "name": "पूरा नाम",
+    "role": "मैं हूं",
+    "student": "छात्र",
+    "mentor": "मेंटर",
+    "admin": "एडमिन / NGO",
+    "forgotPassword": "पासवर्ड भूल गए?",
+    "noAccount": "खाता नहीं है?",
+    "hasAccount": "पहले से खाता है?"
+  },
+  "dashboard": {
+    "welcome": "वापस स्वागत है",
+    "totalStudents": "कुल छात्र",
+    "activeMentors": "सक्रिय मेंटर",
+    "sessionsCompleted": "पूर्ण सत्र",
+    "avgProgress": "औसत प्रगति",
+    "recentSessions": "हाल के सत्र",
+    "progressOverview": "प्रगति अवलोकन",
+    "upcomingSessions": "आगामी सत्र",
+    "atRiskStudents": "जोखिम वाले छात्र",
+    "topMentors": "शीर्ष मेंटर",
+    "learningGaps": "सीखने की कमियां",
+    "engagementRate": "जुड़ाव दर"
+  },
+  "student": {
+    "myProgress": "मेरी प्रगति",
+    "subjects": "विषय",
+    "scores": "अंक",
+    "attendance": "उपस्थिति",
+    "myMentor": "मेरा मेंटर",
+    "nextSession": "अगला सत्र",
+    "resources": "मेरे संसाधन"
+  },
+  "mentor": {
+    "myStudents": "मेरे छात्र",
+    "schedule": "अनुसूची",
+    "sessionNotes": "सत्र नोट्स",
+    "addNotes": "नोट्स जोड़ें"
+  },
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "edit": "संपादित करें",
+    "delete": "हटाएं",
+    "search": "खोजें",
+    "filter": "फ़िल्टर",
+    "noData": "कोई डेटा उपलब्ध नहीं",
+    "loading": "लोड हो रहा है...",
+    "grade": "कक्षा",
+    "subject": "विषय",
+    "date": "तारीख",
+    "status": "स्थिति",
+    "actions": "कार्रवाई",
+    "viewAll": "सभी देखें",
+    "language": "भाषा"
+  }
+}

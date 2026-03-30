@@ -1,0 +1,82 @@
+{
+  "app": {
+    "name": "EduMitra",
+    "tagline": "Empowering Education for Every Child"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "students": "Students",
+    "mentors": "Mentors",
+    "sessions": "Sessions",
+    "resources": "Resources",
+    "progress": "Progress",
+    "matching": "Matching",
+    "impact": "Impact",
+    "settings": "Settings",
+    "logout": "Logout",
+    "login": "Login",
+    "signup": "Sign Up"
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to continue your journey",
+    "signupTitle": "Join EduMitra",
+    "signupSubtitle": "Create your account to get started",
+    "email": "Email",
+    "password": "Password",
+    "name": "Full Name",
+    "role": "I am a",
+    "student": "Student",
+    "mentor": "Mentor",
+    "admin": "Admin / NGO",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "totalStudents": "Total Students",
+    "activeMentors": "Active Mentors",
+    "sessionsCompleted": "Sessions Completed",
+    "avgProgress": "Avg. Progress",
+    "recentSessions": "Recent Sessions",
+    "progressOverview": "Progress Overview",
+    "upcomingSessions": "Upcoming Sessions",
+    "atRiskStudents": "At-Risk Students",
+    "topMentors": "Top Mentors",
+    "learningGaps": "Learning Gaps",
+    "engagementRate": "Engagement Rate"
+  },
+  "student": {
+    "myProgress": "My Progress",
+    "subjects": "Subjects",
+    "scores": "Scores",
+    "attendance": "Attendance",
+    "myMentor": "My Mentor",
+    "nextSession": "Next Session",
+    "resources": "My Resources"
+  },
+  "mentor": {
+    "myStudents": "My Students",
+    "schedule": "Schedule",
+    "sessionNotes": "Session Notes",
+    "addNotes": "Add Notes"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "filter": "Filter",
+    "noData": "No data available",
+    "loading": "Loading...",
+    "grade": "Grade",
+    "subject": "Subject",
+    "date": "Date",
+    "status": "Status",
+    "actions": "Actions",
+    "viewAll": "View All",
+    "language": "Language"
+  }
+}

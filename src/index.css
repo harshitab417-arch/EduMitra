@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 98%;
+    --foreground: 200 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 200 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 25% 15%;
+
+    --primary: 174 62% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 36 80% 56%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 40 20% 94%;
+    --muted-foreground: 200 10% 45%;
+
+    --accent: 174 40% 92%;
+    --accent-foreground: 174 62% 28%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 15% 89%;
+    --input: 200 15% 89%;
+    --ring: 174 62% 38%;
+
+    --radius: 0.75rem;
+
+    --success: 152 60% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 90% 55%;
+    --warning-foreground: 36 90% 20%;
+    --info: 210 70% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --sidebar-background: 174 62% 22%;
+    --sidebar-foreground: 174 10% 92%;
+    --sidebar-primary: 36 80% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 174 50% 28%;
+    --sidebar-accent-foreground: 174 10% 95%;
+    --sidebar-border: 174 40% 30%;
+    --sidebar-ring: 36 80% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold tracking-tight;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm;
+  }
+
+  .stat-card {
+    @apply bg-card rounded-xl border border-border/50 p-5 shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(174 62% 38%), hsl(174 62% 28%));
+  }
+
+  .gradient-warm {
+    background: linear-gradient(135deg, hsl(36 80% 56%), hsl(25 80% 50%));
+  }
+
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(174 62% 22%), hsl(174 62% 32%), hsl(200 50% 35%));
+  }
+}
