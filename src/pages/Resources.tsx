@@ -1,18 +1,35 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '@/components/shared/DashboardLayout';
 import { resourceMap, LessonPlan } from '@/lib/resourceMap';
-import { FolderOpen, BookOpen, Clock, Target } from 'lucide-react';
+import { FolderOpen, BookOpen, Clock, Target, Play, Pin } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import LogSessionDialog from '@/components/shared/LogSessionDialog';
+import PinResourceDialog from '@/components/shared/PinResourceDialog';
 
 export default function ResourcesPage() {
   const { t } = useTranslation();
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedLesson, setSelectedLesson] = useState<LessonPlan | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
 
   const subjects = ['all', ...new Set(resourceMap.map(r => r.subject))];
   const filtered = selectedSubject === 'all'
     ? resourceMap
     : resourceMap.filter(r => r.subject === selectedSubject);
+
+  const sessionDefaults = useMemo(() => {
+    if (!selectedLesson) return undefined;
+    return {
+      subject: selectedLesson.subject,
+      topic: selectedLesson.topic,
+      lessonPlanId: selectedLesson.id,
+      status: "completed" as const,
+      score: 70,
+      notes: `Lesson plan: ${selectedLesson.topic} (${selectedLesson.duration})`,
+    };
+  }, [selectedLesson]);
 
   return (
     <DashboardLayout>
@@ -45,16 +62,29 @@ export default function ResourcesPage() {
           <button onClick={() => setSelectedLesson(null)} className="text-sm text-primary mb-4 hover:underline">
             ← Back to resources
           </button>
-          <h2 className="text-xl font-bold mb-1">{selectedLesson.topic}</h2>
-          <div className="flex gap-3 mb-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" /> {selectedLesson.subject}</span>
-            <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {selectedLesson.duration}</span>
-            <span className="flex items-center gap-1"><Target className="h-3.5 w-3.5" /> Grade {selectedLesson.grade}</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs ${
-              selectedLesson.difficulty === 'beginner' ? 'bg-success/10 text-success' :
-              selectedLesson.difficulty === 'intermediate' ? 'bg-warning/10 text-warning' :
-              'bg-destructive/10 text-destructive'
-            }`}>{selectedLesson.difficulty}</span>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold mb-1">{selectedLesson.topic}</h2>
+              <div className="flex gap-3 mb-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" /> {selectedLesson.subject}</span>
+                <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {selectedLesson.duration}</span>
+                <span className="flex items-center gap-1"><Target className="h-3.5 w-3.5" /> Grade {selectedLesson.grade}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                  selectedLesson.difficulty === 'beginner' ? 'bg-success/10 text-success' :
+                  selectedLesson.difficulty === 'intermediate' ? 'bg-warning/10 text-warning' :
+                  'bg-destructive/10 text-destructive'
+                }`}>{selectedLesson.difficulty}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={() => setLogOpen(true)} className="gap-2">
+                <Play className="h-4 w-4" /> Start Session
+              </Button>
+              <Button variant="outline" onClick={() => setPinOpen(true)} className="gap-2">
+                <Pin className="h-4 w-4" /> Pin to Student
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-6">
@@ -89,6 +119,14 @@ export default function ResourcesPage() {
               </ol>
             </div>
           </div>
+
+          <LogSessionDialog open={logOpen} onOpenChange={setLogOpen} defaults={sessionDefaults} />
+          <PinResourceDialog
+            open={pinOpen}
+            onOpenChange={setPinOpen}
+            lessonPlanId={selectedLesson.id}
+            lessonTitle={selectedLesson.topic}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

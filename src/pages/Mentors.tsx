@@ -10,8 +10,21 @@ export default function MentorsPage() {
   const { data: mentors } = useQuery({
     queryKey: ['all-mentors-page'],
     queryFn: async () => {
-      const { data } = await supabase.from('mentors').select('*, profiles!inner(name)');
-      return data || [];
+      const [{ data: mentorsData, error: mentorsError }, { data: profilesData, error: profilesError }] =
+        await Promise.all([
+          supabase.from('mentors').select('*'),
+          supabase.from('profiles').select('user_id,name'),
+        ]);
+      if (mentorsError) throw mentorsError;
+      if (profilesError) throw profilesError;
+
+      const nameByUserId = new Map<string, string>();
+      (profilesData || []).forEach((p: any) => nameByUserId.set(p.user_id, p.name));
+
+      return (mentorsData || []).map((m: any) => ({
+        ...m,
+        profiles: { name: nameByUserId.get(m.user_id) || 'Mentor' },
+      }));
     },
   });
 

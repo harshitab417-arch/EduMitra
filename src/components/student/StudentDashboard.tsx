@@ -1,14 +1,21 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import StatCard from '@/components/shared/StatCard';
 import { BookOpen, Calendar, TrendingUp, Target } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 export default function StudentDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: student } = useQuery({
     queryKey: ['student', user?.id],
@@ -72,8 +79,107 @@ export default function StudentDashboard() {
     subject: p.subject,
   })) || [];
 
+  const [grade, setGrade] = useState<number>(6);
+  const [subjectsText, setSubjectsText] = useState<string>('');
+  const [baselineLevel, setBaselineLevel] = useState<string>('beginner');
+  const [location, setLocation] = useState<string>('');
+
+  const subjects = useMemo(
+    () => subjectsText.split(',').map(s => s.trim()).filter(Boolean),
+    [subjectsText],
+  );
+
+  useEffect(() => {
+    if (!student) return;
+    setGrade(student.grade ?? 6);
+    setSubjectsText((student.subjects || []).join(', '));
+    setBaselineLevel(student.baseline_level ?? 'beginner');
+    setLocation(student.location ?? '');
+  }, [student]);
+
+  const saveStudentMutation = useMutation({
+    mutationFn: async () => {
+      if (!student?.id) throw new Error('Student profile not found');
+      const { error } = await supabase
+        .from('students')
+        .update({
+          grade,
+          subjects,
+          baseline_level: baselineLevel,
+          location,
+        })
+        .eq('id', student.id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast({ title: 'Saved', description: 'Student learning profile updated.' });
+      await queryClient.invalidateQueries({ queryKey: ['student', user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ['matching-students'] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err?.message ?? 'Failed to update student', variant: 'destructive' });
+    },
+  });
+
   return (
     <div className="space-y-6">
+      <div className="stat-card">
+        <h3 className="font-semibold mb-1">Student setup (for matching + milestones)</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Fill these so mentors get matched correctly and progress tracking is accurate.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Grade</p>
+            <Input
+              type="number"
+              min={1}
+              max={12}
+              value={grade}
+              onChange={(e) => setGrade(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Baseline level</p>
+            <Select value={baselineLevel} onValueChange={setBaselineLevel}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="beginner">beginner</SelectItem>
+                <SelectItem value="intermediate">intermediate</SelectItem>
+                <SelectItem value="advanced">advanced</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-2">
+            <p className="text-xs text-muted-foreground mb-1">Subjects (comma-separated)</p>
+            <Input
+              value={subjectsText}
+              onChange={(e) => setSubjectsText(e.target.value)}
+              placeholder="e.g., Mathematics, English, Science"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <p className="text-xs text-muted-foreground mb-1">Location (optional)</p>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g., Pune"
+            />
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button
+            variant="outline"
+            onClick={() => saveStudentMutation.mutate()}
+            disabled={saveStudentMutation.isPending || !student}
+          >
+            {saveStudentMutation.isPending ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={t('student.subjects')} value={student?.subjects?.length || 0} icon={BookOpen} variant="primary" />
         <StatCard title={t('student.scores')} value={`${avgScore}%`} icon={TrendingUp} variant="success" />

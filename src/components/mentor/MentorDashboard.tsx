@@ -1,13 +1,19 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import StatCard from '@/components/shared/StatCard';
 import { Users, Calendar, BookOpen, TrendingUp } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export default function MentorDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: mentor } = useQuery({
     queryKey: ['mentor', user?.id],
@@ -17,6 +23,47 @@ export default function MentorDashboard() {
     },
     enabled: !!user,
   });
+
+  const [expertiseText, setExpertiseText] = useState('');
+  const [availabilityText, setAvailabilityText] = useState('');
+
+  const parsedExpertise = useMemo(
+    () => expertiseText.split(',').map(s => s.trim()).filter(Boolean),
+    [expertiseText],
+  );
+  const parsedAvailability = useMemo(
+    () => availabilityText.split(',').map(s => s.trim()).filter(Boolean),
+    [availabilityText],
+  );
+
+  const saveMentorMutation = useMutation({
+    mutationFn: async () => {
+      if (!mentor?.id) throw new Error('Mentor profile not found');
+      const { error } = await supabase
+        .from('mentors')
+        .update({
+          expertise: parsedExpertise,
+          availability: parsedAvailability,
+        })
+        .eq('id', mentor.id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast({ title: 'Saved', description: 'Mentor availability and expertise updated.' });
+      await queryClient.invalidateQueries({ queryKey: ['mentor', user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ['matching-mentors'] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err?.message ?? 'Failed to update mentor', variant: 'destructive' });
+    },
+  });
+
+  // Pre-fill inputs once we have mentor data (only if user hasn't typed yet)
+  useEffect(() => {
+    if (!mentor) return;
+    setExpertiseText((prev) => (prev ? prev : (mentor.expertise || []).join(', ')));
+    setAvailabilityText((prev) => (prev ? prev : (mentor.availability || []).join(', ')));
+  }, [mentor]);
 
   const { data: matches } = useQuery({
     queryKey: ['mentor-matches', mentor?.id],
@@ -50,6 +97,40 @@ export default function MentorDashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="stat-card">
+        <h3 className="font-semibold mb-1">Mentor setup (for matching)</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Fill these so the auto-matching and “My Students” assignment becomes meaningful.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Expertise (comma-separated)</p>
+            <Input
+              value={expertiseText}
+              onChange={(e) => setExpertiseText(e.target.value)}
+              placeholder="e.g., Mathematics, Science, English"
+            />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Availability (comma-separated)</p>
+            <Input
+              value={availabilityText}
+              onChange={(e) => setAvailabilityText(e.target.value)}
+              placeholder="e.g., Mon 5pm, Wed 6pm, Sat 10am"
+            />
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button
+            variant="outline"
+            onClick={() => saveMentorMutation.mutate()}
+            disabled={saveMentorMutation.isPending || !mentor}
+          >
+            {saveMentorMutation.isPending ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={t('mentor.myStudents')} value={matches?.length || 0} icon={Users} variant="primary" />
         <StatCard title={t('dashboard.sessionsCompleted')} value={completedSessions} icon={Calendar} variant="success" />

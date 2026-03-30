@@ -1,30 +1,60 @@
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import DashboardLayout from '@/components/shared/DashboardLayout';
-import { Calendar } from 'lucide-react';
+import { Calendar, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import LogSessionDialog from '@/components/shared/LogSessionDialog';
 
 export default function SessionsPage() {
   const { t } = useTranslation();
+  const [logOpen, setLogOpen] = useState(false);
+  const [studentFilter, setStudentFilter] = useState<string>('');
+  const [topicFilter, setTopicFilter] = useState<string>('');
 
   const { data: sessions } = useQuery({
-    queryKey: ['all-sessions-page'],
+    queryKey: ['all-sessions-page', studentFilter, topicFilter],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from('sessions')
         .select('*')
         .order('date', { ascending: false });
+
+      if (studentFilter.trim()) q = q.eq('student_id', studentFilter.trim());
+      if (topicFilter.trim()) q = q.ilike('topic', `%${topicFilter.trim()}%`);
+
+      const { data } = await q;
       return data || [];
     },
   });
 
+  const defaults = useMemo(() => ({ status: "completed" as const, score: 70 }), []);
+
   return (
     <DashboardLayout>
-      <div className="mb-6">
+      <div className="mb-6 flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Calendar className="h-6 w-6 text-primary" />
           {t('nav.sessions')}
         </h1>
+        <Button onClick={() => setLogOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" /> Log New Session
+        </Button>
+      </div>
+
+      <div className="stat-card mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Filter by student_id</p>
+            <Input value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)} placeholder="Paste a student UUID" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Filter by topic</p>
+            <Input value={topicFilter} onChange={(e) => setTopicFilter(e.target.value)} placeholder="e.g., Fractions" />
+          </div>
+        </div>
       </div>
 
       <div className="stat-card overflow-x-auto">
@@ -58,6 +88,8 @@ export default function SessionsPage() {
           </tbody>
         </table>
       </div>
+
+      <LogSessionDialog open={logOpen} onOpenChange={setLogOpen} defaults={defaults} />
     </DashboardLayout>
   );
 }

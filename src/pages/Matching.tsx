@@ -17,16 +17,42 @@ export default function MatchingPage() {
   const { data: students } = useQuery({
     queryKey: ['matching-students'],
     queryFn: async () => {
-      const { data } = await supabase.from('students').select('*, profiles!inner(name)');
-      return data || [];
+      const [{ data: studentsData, error: studentsError }, { data: profilesData, error: profilesError }] =
+        await Promise.all([
+          supabase.from('students').select('*'),
+          supabase.from('profiles').select('user_id,name'),
+        ]);
+      if (studentsError) throw studentsError;
+      if (profilesError) throw profilesError;
+
+      const nameByUserId = new Map<string, string>();
+      (profilesData || []).forEach((p: any) => nameByUserId.set(p.user_id, p.name));
+
+      return (studentsData || []).map((s: any) => ({
+        ...s,
+        profiles: { name: nameByUserId.get(s.user_id) || 'Student' },
+      }));
     },
   });
 
   const { data: mentors } = useQuery({
     queryKey: ['matching-mentors'],
     queryFn: async () => {
-      const { data } = await supabase.from('mentors').select('*, profiles!inner(name)');
-      return data || [];
+      const [{ data: mentorsData, error: mentorsError }, { data: profilesData, error: profilesError }] =
+        await Promise.all([
+          supabase.from('mentors').select('*'),
+          supabase.from('profiles').select('user_id,name'),
+        ]);
+      if (mentorsError) throw mentorsError;
+      if (profilesError) throw profilesError;
+
+      const nameByUserId = new Map<string, string>();
+      (profilesData || []).forEach((p: any) => nameByUserId.set(p.user_id, p.name));
+
+      return (mentorsData || []).map((m: any) => ({
+        ...m,
+        profiles: { name: nameByUserId.get(m.user_id) || 'Mentor' },
+      }));
     },
   });
 
