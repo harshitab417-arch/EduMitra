@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '@/components/shared/DashboardLayout';
 import { resourceMap, LessonPlan } from '@/lib/resourceMap';
@@ -7,18 +7,68 @@ import { Button } from '@/components/ui/button';
 import LogSessionDialog from '@/components/shared/LogSessionDialog';
 import PinResourceDialog from '@/components/shared/PinResourceDialog';
 import PageHeader from '@/components/shared/PageHeader';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function ResourcesPage() {
   const { t } = useTranslation();
+  const { user, profile } = useAuth();
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedLesson, setSelectedLesson] = useState<LessonPlan | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [pinOpen, setPinOpen] = useState(false);
 
-  const subjects = ['all', ...new Set(resourceMap.map(r => r.subject))];
+  const { data: roleSubjects } = useQuery({
+    queryKey: ['resources-role-subjects', user?.id, profile?.role],
+    enabled: !!user && (profile?.role === 'student' || profile?.role === 'mentor'),
+    queryFn: async () => {
+      if (!user || !profile) return [] as string[];
+
+      if (profile.role === 'student') {
+        const { data, error } = await supabase.from('students').select('subjects').eq('user_id', user.id).single();
+        if (error) throw error;
+        return (data?.subjects || []) as string[];
+      }
+
+      if (profile.role === 'mentor') {
+        const { data, error } = await supabase.from('mentors').select('expertise').eq('user_id', user.id).single();
+        if (error) throw error;
+        return (data?.expertise || []) as string[];
+      }
+
+      return [] as string[];
+    },
+  });
+
+  const normalizedAllowedSubjects = useMemo(
+    () => new Set((roleSubjects || []).map((s) => s.toLowerCase().trim()).filter(Boolean)),
+    [roleSubjects],
+  );
+
+  const visibleResources = useMemo(() => {
+    if (profile?.role === 'student' || profile?.role === 'mentor') {
+      if (normalizedAllowedSubjects.size === 0) return [] as LessonPlan[];
+      return resourceMap.filter((r) => normalizedAllowedSubjects.has(r.subject.toLowerCase().trim()));
+    }
+    return resourceMap;
+  }, [profile?.role, normalizedAllowedSubjects]);
+
+  const subjects = useMemo(
+    () => ['all', ...new Set(visibleResources.map(r => r.subject))],
+    [visibleResources],
+  );
+
+  useEffect(() => {
+    if (selectedSubject !== 'all' && !subjects.includes(selectedSubject)) {
+      setSelectedSubject('all');
+      setSelectedLesson(null);
+    }
+  }, [selectedSubject, subjects]);
+
   const filtered = selectedSubject === 'all'
-    ? resourceMap
-    : resourceMap.filter(r => r.subject === selectedSubject);
+    ? visibleResources
+    : visibleResources.filter(r => r.subject === selectedSubject);
 
   const sessionDefaults = useMemo(() => {
     if (!selectedLesson) return undefined;
@@ -129,26 +179,38 @@ export default function ResourcesPage() {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(r => (
-            <button
-              key={r.id}
-              onClick={() => setSelectedLesson(r)}
-              className="stat-card text-left hover:border-primary/30 transition-all group"
-            >
-              <h3 className="font-semibold group-hover:text-primary transition-colors">{r.topic}</h3>
-              <p className="text-sm text-muted-foreground mt-1">{r.subject} · Grade {r.grade}</p>
-              <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {r.duration}</span>
-                <span className={`px-2 py-0.5 rounded-full ${
-                  r.difficulty === 'beginner' ? 'bg-success/10 text-success' :
-                  r.difficulty === 'intermediate' ? 'bg-warning/10 text-warning' :
-                  'bg-destructive/10 text-destructive'
-                }`}>{r.difficulty}</span>
-              </div>
-            </button>
-          ))}
-        </div>
+        filtered.length === 0 ? (
+          <div className="stat-card">
+            <p className="text-sm text-muted-foreground">
+              {profile?.role === 'student'
+                ? 'No resources available. Add subjects in Student setup to unlock relevant topics.'
+                : profile?.role === 'mentor'
+                  ? 'No resources available. Add expertise in Mentor setup to unlock relevant topics.'
+                  : t('common.noData')}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(r => (
+              <button
+                key={r.id}
+                onClick={() => setSelectedLesson(r)}
+                className="stat-card text-left hover:border-primary/30 transition-all group"
+              >
+                <h3 className="font-semibold group-hover:text-primary transition-colors">{r.topic}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{r.subject} · Grade {r.grade}</p>
+                <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {r.duration}</span>
+                  <span className={`px-2 py-0.5 rounded-full ${
+                    r.difficulty === 'beginner' ? 'bg-success/10 text-success' :
+                    r.difficulty === 'intermediate' ? 'bg-warning/10 text-warning' :
+                    'bg-destructive/10 text-destructive'
+                  }`}>{r.difficulty}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )
       )}
     </DashboardLayout>
   );
