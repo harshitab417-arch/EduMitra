@@ -100,11 +100,7 @@ export default function PinResourceDialog({
   const pinMutation = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
       if (!user) throw new Error("Not signed in");
-
-      if (profile?.role === "student") {
-        const selected = (students || []).find((s: any) => s.id === values.studentId);
-        if (!selected) throw new Error("You can only pin resources to students with overlapping subjects.");
-      }
+      if (profile?.role === "student") throw new Error("Students are not allowed to pin resources.");
 
       const { error } = await supabase.from("student_resources").insert({
         student_id: values.studentId,

@@ -180,6 +180,9 @@ export default function LogSessionDialog({
   const saveMutation = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
       if (!user) throw new Error("Not signed in");
+      if (profile?.role === "admin" && !values.mentorId) {
+        throw new Error("Select a mentor (required for logging sessions).");
+      }
 
       if (profile?.role === "mentor") {
         const expertise = (myMentor?.expertise || []).map((s) => s.toLowerCase());
@@ -197,6 +200,8 @@ export default function LogSessionDialog({
       const studentsById = new Map((students || []).map((s) => [s.id, s]));
 
       const mentorByStudentId = new Map<string, string>();
+      let fallbackMentorIdForStudent: string | undefined;
+      let mentorBySubjectFallback: string | undefined;
       if (profile?.role === "student") {
         const { data: activeMatches, error: matchesError } = await supabase
           .from("matches")
@@ -207,6 +212,29 @@ export default function LogSessionDialog({
         (activeMatches || []).forEach((m: any) => {
           if (!mentorByStudentId.has(m.student_id)) mentorByStudentId.set(m.student_id, m.mentor_id);
         });
+
+        if (myStudent?.id) {
+          const { data: myActiveMatch, error: myMatchError } = await supabase
+            .from("matches")
+            .select("mentor_id")
+            .eq("student_id", myStudent.id)
+            .eq("status", "active")
+            .maybeSingle();
+          if (myMatchError) throw myMatchError;
+          fallbackMentorIdForStudent = myActiveMatch?.mentor_id;
+        }
+
+        if (!fallbackMentorIdForStudent) {
+          const { data: allMentors, error: mentorsError } = await supabase
+            .from("mentors")
+            .select("id,expertise");
+          if (mentorsError) throw mentorsError;
+          const normalizedSubject = values.subject.toLowerCase();
+          const mentorMatch = (allMentors || []).find((m: any) =>
+            (m.expertise || []).some((sub: string) => sub.toLowerCase() === normalizedSubject),
+          );
+          mentorBySubjectFallback = mentorMatch?.id;
+        }
       }
 
       const status: "not_started" | "in_progress" | "completed" | "flagged" =
@@ -217,10 +245,10 @@ export default function LogSessionDialog({
           profile?.role === "mentor"
             ? myMentor?.id
             : profile?.role === "student"
-              ? mentorByStudentId.get(studentId)
+              ? (mentorByStudentId.get(studentId) || fallbackMentorIdForStudent || mentorBySubjectFallback)
               : values.mentorId;
         if (!mentorId) {
-          throw new Error("No active mentor match found for selected student. Ask admin to run matching first.");
+          throw new Error("No mentor available for this subject right now. Ask admin to add a mentor match.");
         }
 
         const student = studentsById.get(studentId);
@@ -238,7 +266,7 @@ export default function LogSessionDialog({
         if (topicFindError) throw topicFindError;
 
         let topicId = existingTopic?.id as string | undefined;
-        if (!topicId) {
+        if (!topicId && profile?.role !== "student") {
           const { data: createdTopic, error: topicCreateError } = await supabase
             .from("learning_topics")
             .insert({
@@ -271,17 +299,19 @@ export default function LogSessionDialog({
         });
         if (progressError) throw progressError;
 
-        const { error: milestoneError } = await supabase.from("student_milestones").upsert(
-          {
-            student_id: studentId,
-            topic_id: topicId,
-            status,
-            last_session_at: new Date().toISOString(),
-            last_score: values.score,
-          },
-          { onConflict: "student_id,topic_id" },
-        );
-        if (milestoneError) throw milestoneError;
+        if (topicId && profile?.role !== "student") {
+          const { error: milestoneError } = await supabase.from("student_milestones").upsert(
+            {
+              student_id: studentId,
+              topic_id: topicId,
+              status,
+              last_session_at: new Date().toISOString(),
+              last_score: values.score,
+            },
+            { onConflict: "student_id,topic_id" },
+          );
+          if (milestoneError) throw milestoneError;
+        }
       }
     },
     onSuccess: async () => {

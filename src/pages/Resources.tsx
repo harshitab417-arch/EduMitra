@@ -131,9 +131,11 @@ export default function ResourcesPage() {
               <Button onClick={() => setLogOpen(true)} className="gap-2">
                 <Play className="h-4 w-4" /> Start Session
               </Button>
-              <Button variant="outline" onClick={() => setPinOpen(true)} className="gap-2">
-                <Pin className="h-4 w-4" /> Pin to Student
-              </Button>
+              {profile?.role !== 'student' && (
+                <Button variant="outline" onClick={() => setPinOpen(true)} className="gap-2">
+                  <Pin className="h-4 w-4" /> Pin to Student
+                </Button>
+              )}
             </div>
           </div>
 
