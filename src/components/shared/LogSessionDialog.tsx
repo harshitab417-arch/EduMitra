@@ -119,20 +119,42 @@ export default function LogSessionDialog({
     enabled: open && profile?.role === "mentor" && !!user,
   });
 
+  const { data: myStudent } = useQuery({
+    queryKey: ["log-session-my-student", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("students").select("id,subjects").eq("user_id", user!.id).single();
+      if (error) throw error;
+      return data as { id: string; subjects: string[] };
+    },
+    enabled: open && profile?.role === "student" && !!user,
+  });
+
   const selectedStudentIds = form.watch("studentIds");
   const mentorSubjects = (myMentor?.expertise || []).filter(Boolean);
+  const studentSubjects = (myStudent?.subjects || []).filter(Boolean);
   const selectedSubject = form.watch("subject");
 
   const visibleStudents = useMemo(() => {
-    const searched = (students || []).filter((s: any) =>
-      s.name.toLowerCase().includes(studentSearch.toLowerCase()),
-    );
+    let base = students || [];
+
+    if (profile?.role === "student") {
+      const mySubjects = studentSubjects.map((s) => s.toLowerCase());
+      if (!mySubjects.length) {
+        base = [];
+      } else {
+        base = base.filter((s: any) =>
+          (s.subjects || []).some((sub: string) => mySubjects.includes(sub.toLowerCase())),
+        );
+      }
+    }
+
+    const searched = base.filter((s: any) => s.name.toLowerCase().includes(studentSearch.toLowerCase()));
 
     if (profile?.role !== "mentor" || !selectedSubject) return searched;
     return searched.filter((s: any) =>
       (s.subjects || []).some((sub: string) => sub.toLowerCase() === selectedSubject.toLowerCase()),
     );
-  }, [students, studentSearch, profile?.role, selectedSubject]);
+  }, [students, studentSearch, profile?.role, selectedSubject, studentSubjects]);
 
   const allVisibleSelected =
     visibleStudents.length > 0 && visibleStudents.every((s: any) => selectedStudentIds.includes(s.id));
@@ -146,12 +168,18 @@ export default function LogSessionDialog({
     }
   }, [profile?.role, mentorSubjects, form]);
 
+  useEffect(() => {
+    if (profile?.role === "student" && studentSubjects.length > 0) {
+      const current = form.getValues("subject");
+      if (!current || !studentSubjects.includes(current)) {
+        form.setValue("subject", studentSubjects[0]);
+      }
+    }
+  }, [profile?.role, studentSubjects, form]);
+
   const saveMutation = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
       if (!user) throw new Error("Not signed in");
-
-      const mentorId = profile?.role === "mentor" ? myMentor?.id : values.mentorId;
-      if (!mentorId) throw new Error("Select a mentor (required for logging sessions)");
 
       if (profile?.role === "mentor") {
         const expertise = (myMentor?.expertise || []).map((s) => s.toLowerCase());
@@ -159,12 +187,42 @@ export default function LogSessionDialog({
           throw new Error("You can only log subjects from your mentor expertise.");
         }
       }
+      if (profile?.role === "student") {
+        const allowed = studentSubjects.map((s) => s.toLowerCase());
+        if (!allowed.includes(values.subject.toLowerCase())) {
+          throw new Error("You can only log subjects from your student setup.");
+        }
+      }
 
       const studentsById = new Map((students || []).map((s) => [s.id, s]));
+
+      const mentorByStudentId = new Map<string, string>();
+      if (profile?.role === "student") {
+        const { data: activeMatches, error: matchesError } = await supabase
+          .from("matches")
+          .select("student_id,mentor_id")
+          .eq("status", "active")
+          .in("student_id", values.studentIds);
+        if (matchesError) throw matchesError;
+        (activeMatches || []).forEach((m: any) => {
+          if (!mentorByStudentId.has(m.student_id)) mentorByStudentId.set(m.student_id, m.mentor_id);
+        });
+      }
+
       const status: "not_started" | "in_progress" | "completed" | "flagged" =
         values.score >= 75 ? "completed" : values.score >= 40 ? "in_progress" : "flagged";
 
       for (const studentId of values.studentIds) {
+        const mentorId =
+          profile?.role === "mentor"
+            ? myMentor?.id
+            : profile?.role === "student"
+              ? mentorByStudentId.get(studentId)
+              : values.mentorId;
+        if (!mentorId) {
+          throw new Error("No active mentor match found for selected student. Ask admin to run matching first.");
+        }
+
         const student = studentsById.get(studentId);
         const grade = student?.grade ?? null;
         if (!grade) throw new Error("Student grade not found");
@@ -238,7 +296,12 @@ export default function LogSessionDialog({
       form.reset({
         studentIds: [],
         mentorId: "",
-        subject: profile?.role === "mentor" ? (mentorSubjects[0] || "") : "",
+        subject:
+          profile?.role === "mentor"
+            ? (mentorSubjects[0] || "")
+            : profile?.role === "student"
+              ? (studentSubjects[0] || "")
+              : "",
         topic: "",
         lessonPlanId: "",
         score: 70,
@@ -373,6 +436,19 @@ export default function LogSessionDialog({
                           </SelectTrigger>
                           <SelectContent>
                             {mentorSubjects.map((subj) => (
+                              <SelectItem key={subj} value={subj}>
+                                {subj}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : profile?.role === "student" ? (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your subject" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {studentSubjects.map((subj) => (
                               <SelectItem key={subj} value={subj}>
                                 {subj}
                               </SelectItem>

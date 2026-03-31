@@ -8,20 +8,60 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import LogSessionDialog from '@/components/shared/LogSessionDialog';
 import PageHeader from '@/components/shared/PageHeader';
+import { useAuth } from '@/context/AuthContext';
 
 export default function SessionsPage() {
   const { t } = useTranslation();
+  const { user, profile } = useAuth();
   const [logOpen, setLogOpen] = useState(false);
   const [studentFilter, setStudentFilter] = useState<string>('');
   const [topicFilter, setTopicFilter] = useState<string>('');
 
+  const { data: myStudent } = useQuery({
+    queryKey: ['sessions-my-student', user?.id],
+    enabled: !!user && profile?.role === 'student',
+    queryFn: async () => {
+      const { data, error } = await supabase.from('students').select('id,subjects').eq('user_id', user!.id).single();
+      if (error) throw error;
+      return data as { id: string; subjects: string[] };
+    },
+  });
+
+  const { data: peerStudentIds } = useQuery({
+    queryKey: ['sessions-peer-student-ids', myStudent?.id, myStudent?.subjects],
+    enabled: profile?.role === 'student' && !!myStudent,
+    queryFn: async () => {
+      const mySubjects = (myStudent?.subjects || []).map((s) => s.toLowerCase());
+      if (!mySubjects.length) return [myStudent!.id];
+
+      const { data, error } = await supabase.from('students').select('id,subjects');
+      if (error) throw error;
+
+      const peers = (data || [])
+        .filter((s: any) => {
+          const subjects = (s.subjects || []).map((sub: string) => sub.toLowerCase());
+          return subjects.some((sub: string) => mySubjects.includes(sub));
+        })
+        .map((s: any) => s.id);
+
+      if (!peers.includes(myStudent!.id)) peers.push(myStudent!.id);
+      return peers;
+    },
+  });
+
   const { data: sessions } = useQuery({
-    queryKey: ['all-sessions-page', studentFilter, topicFilter],
+    queryKey: ['all-sessions-page', studentFilter, topicFilter, profile?.role, peerStudentIds],
     queryFn: async () => {
       let q = supabase
         .from('sessions')
         .select('*')
         .order('date', { ascending: false });
+
+      if (profile?.role === 'student') {
+        const ids = peerStudentIds || [];
+        if (ids.length === 0) return [];
+        q = q.in('student_id', ids);
+      }
 
       if (studentFilter.trim()) q = q.eq('student_id', studentFilter.trim());
       if (topicFilter.trim()) q = q.ilike('topic', `%${topicFilter.trim()}%`);
@@ -64,6 +104,7 @@ export default function SessionsPage() {
         studentGrade: studentsById.get(s.student_id)?.studentGrade ?? null,
       }));
     },
+    enabled: profile?.role !== 'student' || !!myStudent,
   });
 
   const defaults = useMemo(() => ({ status: "completed" as const, score: 70 }), []);
@@ -83,10 +124,12 @@ export default function SessionsPage() {
 
       <div className="stat-card mb-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Filter by student_id</p>
-            <Input value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)} placeholder="Paste a student UUID" />
-          </div>
+          {profile?.role !== 'student' && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Filter by student_id</p>
+              <Input value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)} placeholder="Paste a student UUID" />
+            </div>
+          )}
           <div>
             <p className="text-xs text-muted-foreground mb-1">Filter by topic</p>
             <Input value={topicFilter} onChange={(e) => setTopicFilter(e.target.value)} placeholder="e.g., Fractions" />

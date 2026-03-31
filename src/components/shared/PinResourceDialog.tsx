@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { resourceMap } from "@/lib/resourceMap";
 
 const schema = z.object({
   studentId: z.string().min(1, "Select a student"),
@@ -30,7 +31,7 @@ export default function PinResourceDialog({
   lessonPlanId: string;
   lessonTitle: string;
 }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -39,12 +40,27 @@ export default function PinResourceDialog({
     defaultValues: { studentId: "", notes: "" },
   });
 
+  const lessonSubject = useMemo(
+    () => resourceMap.find((r) => r.id === lessonPlanId)?.subject ?? null,
+    [lessonPlanId],
+  );
+
+  const { data: myStudent } = useQuery({
+    queryKey: ["pin-resource-my-student", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("students").select("id,subjects").eq("user_id", user!.id).single();
+      if (error) throw error;
+      return data as { id: string; subjects: string[] };
+    },
+    enabled: open && profile?.role === "student" && !!user,
+  });
+
   const { data: students } = useQuery({
-    queryKey: ["pin-resource-students"],
+    queryKey: ["pin-resource-students", profile?.role, myStudent?.subjects],
     queryFn: async () => {
       const [{ data: studentsData, error: studentsError }, { data: profilesData, error: profilesError }] =
         await Promise.all([
-          supabase.from("students").select("id,user_id,grade"),
+          supabase.from("students").select("id,user_id,grade,subjects"),
           supabase.from("profiles").select("user_id,name"),
         ]);
       if (studentsError) throw studentsError;
@@ -53,13 +69,26 @@ export default function PinResourceDialog({
       const nameByUserId = new Map<string, string>();
       (profilesData || []).forEach((p: any) => nameByUserId.set(p.user_id, p.name));
 
-      return (studentsData || []).map((s: any) => ({
+      const normalizedMySubjects = new Set((myStudent?.subjects || []).map((s) => s.toLowerCase()));
+      const normalizedLessonSubject = lessonSubject?.toLowerCase() ?? null;
+
+      return (studentsData || [])
+        .filter((s: any) => {
+          if (profile?.role !== "student") return true;
+          const subjects = (s.subjects || []).map((sub: string) => sub.toLowerCase());
+          const overlaps = subjects.some((sub: string) => normalizedMySubjects.has(sub));
+          if (!overlaps) return false;
+          if (!normalizedLessonSubject) return true;
+          return subjects.includes(normalizedLessonSubject);
+        })
+        .map((s: any) => ({
         id: s.id,
         grade: s.grade,
+        subjects: s.subjects || [],
         name: nameByUserId.get(s.user_id) || "Student",
-      }));
+        }));
     },
-    enabled: open,
+    enabled: open && (profile?.role !== "student" || !!myStudent),
   });
 
   const selectedStudentId = form.watch("studentId");
@@ -71,6 +100,12 @@ export default function PinResourceDialog({
   const pinMutation = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
       if (!user) throw new Error("Not signed in");
+
+      if (profile?.role === "student") {
+        const selected = (students || []).find((s: any) => s.id === values.studentId);
+        if (!selected) throw new Error("You can only pin resources to students with overlapping subjects.");
+      }
+
       const { error } = await supabase.from("student_resources").insert({
         student_id: values.studentId,
         lesson_plan_id: lessonPlanId,
