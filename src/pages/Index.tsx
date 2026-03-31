@@ -69,7 +69,7 @@ export default function Index() {
               </Badge>
               <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
                 <span className="block">{t('app.tagline')}</span>
-                <span className="mt-2 inline-block bg-black/10 px-2 py-1 rounded-md text-sm font-medium lg:bg-black/15">
+                <span className="mt-2 inline-block bg-black/10 px-2 py-1 rounded-md text-sm font-medium tracking-normal leading-relaxed lg:bg-black/15">
                   {t('home.heroDescription')}
                 </span>
               </h1>
